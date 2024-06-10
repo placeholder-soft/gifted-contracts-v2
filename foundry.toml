@@ -2,5 +2,15 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-
+solc = "0.8.20"
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[rpc_endpoints]
+blast_sepolia = "https://sepolia.blast.io"
+mainnet = "https://serene-blissful-diagram.quiknode.pro/aaa3a6a643b0fb29cf0475abf263124da4fb99ca"
+arbitrum = "https://rpc.ankr.com/arbitrum/99f904034e93a49be9d8ba29f245241faeaaad80ee26e657fe3d179bc31475c9"
+
+[etherscan]
+blast_sepolia = { key = "BATXPKK9H1AU5IUG7344D35VDX7GEZD82K", url = "https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan" }
+mainnet = { key = "V7332TBR1DTRY9MTKK9MATAXXUTEHD7Y32" }
+arbitrum = { key = "QS94SR2Z3F88VPSNQFTFXX4D8I45Q34UKQ", url = "https://api.arbiscan.io/api" }
