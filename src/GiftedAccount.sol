@@ -17,6 +17,7 @@ import "@openzeppelin/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
+import "./interfaces/IGiftedBox.sol";
 
 error UntrustedImplementation();
 error NotAuthorized();
@@ -44,9 +45,15 @@ contract GiftedAccount is
     function initialize(address guardian) public initializer {
         _guardian = IGiftedAccountGuardian(guardian);
     }
+
     /// events
 
-    event CallPermit(address indexed owner, address indexed to, uint256 nonce, uint256 deadline);
+    event CallPermit(
+        address indexed owner,
+        address indexed to,
+        uint256 nonce,
+        uint256 deadline
+    );
 
     // Event to log the transfer of an ERC1155 token with a permit
     event CallTransferERC1155Permit(
@@ -64,9 +71,35 @@ contract GiftedAccount is
     /// @param sender The address that sent the ETH
     /// @param amount The amount of ETH sent
     /// @param newBalance The new balance of the account
-    event ReceivedEther(address indexed sender, uint256 amount, uint256 newBalance);
+    event ReceivedEther(
+        address indexed sender,
+        uint256 amount,
+        uint256 newBalance
+    );
 
-    event AccountGuardianUpgraded(address indexed previousGuardian, address indexed newGuardian);
+    event AccountGuardianUpgraded(
+        address indexed previousGuardian,
+        address indexed newGuardian
+    );
+
+    event GiftedAccountERC1155Received(
+        address operator,
+        address from,
+        uint256 erc1155TokenId,
+        uint256 erc1155Tokenvalue,
+        address erc1155Contract,
+        address giftedBoxContract,
+        uint256 giftedBoxTokenId
+    );
+
+    event GiftedAccountERC721Received(
+        address operator,
+        address from,
+        uint256 erc721TokenId,
+        address erc721Contract,
+        address giftedBoxContract,
+        uint256 giftedBoxTokenId
+    );
     /// modifier
 
     /// @dev reverts if caller is not authorized to execute on this account
@@ -85,12 +118,11 @@ contract GiftedAccount is
         emit ReceivedEther(msg.sender, msg.value, address(this).balance);
     }
 
-    function executeCall(address to, uint256 value, bytes calldata data)
-        external
-        payable
-        onlyAuthorized
-        returns (bytes memory result)
-    {
+    function executeCall(
+        address to,
+        uint256 value,
+        bytes calldata data
+    ) external payable onlyAuthorized returns (bytes memory result) {
         return call(to, value, data);
     }
 
@@ -103,23 +135,31 @@ contract GiftedAccount is
     }
 
     function owner() public view returns (address) {
-        (uint256 chainId, address tokenContract, uint256 tokenId) = this.token();
-        if (chainId != block.chainid) revert("!chainid-not-equal-block-chainid");
+        (uint256 chainId, address tokenContract, uint256 tokenId) = this
+            .token();
+        if (chainId != block.chainid)
+            revert("!chainid-not-equal-block-chainid");
 
         return IERC721(tokenContract).ownerOf(tokenId);
     }
 
     // ======== ERC165 Interface ========
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (
-            interfaceId == type(IERC165).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
-                || interfaceId == type(IERC6551Account).interfaceId
-        );
+        return (interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(IERC1155Receiver).interfaceId ||
+            interfaceId == type(IERC6551Account).interfaceId);
     }
 
     // ======== ERC1271 Interface ========
-    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
-        bool isValid = SignatureChecker.isValidSignatureNow(owner(), hash, signature);
+    function isValidSignature(
+        bytes32 hash,
+        bytes memory signature
+    ) external view returns (bytes4 magicValue) {
+        bool isValid = SignatureChecker.isValidSignatureNow(
+            owner(),
+            hash,
+            signature
+        );
 
         if (isValid) {
             return IERC1271.isValidSignature.selector;
@@ -128,28 +168,117 @@ contract GiftedAccount is
     }
 
     // ============ ERC721Receiver Interface ============
-    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
+    function onERC721Received(
+        address _operator,
+        address _from,
+        uint256 _tokenId,
+        bytes calldata
+    ) external override returns (bytes4) {
+        address _owner = owner();
+        (uint256 chainId, address tokenContract, uint256 tokenId) = this
+            .token();
+        if (chainId != block.chainid)
+            revert("!chainid-not-equal-block-chainid");
+
+        if (
+            _owner == _from ||
+            _owner == _operator ||
+            isAuthorizedSender(_from, _operator, tokenContract, tokenId)
+        ) {
+            emit GiftedAccountERC721Received(
+                _operator,
+                _from,
+                _tokenId,
+                msg.sender,
+                tokenContract,
+                tokenId
+            );
+            return IERC721Receiver.onERC721Received.selector;
+        }
+
+        revert("!sender-not-authorized");
+    }
+
+    function isAuthorizedSender(
+        address _from,
+        address _operator,
+        address tokenContract,
+        uint256 tokenId
+    ) internal view returns (bool) {
+        GiftingRecord memory record = IGiftedBox(tokenContract)
+            .getGiftingRecord(tokenId);
+        return (record.sender == _from || record.sender == _operator);
     }
 
     // ============ ERC1155Receiver Interface ============
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        return IERC1155Receiver.onERC1155Received.selector;
+    function onERC1155Received(
+        address _operator,
+        address _from,
+        uint256 _id,
+        uint256 _value,
+        bytes calldata
+    ) external override returns (bytes4) {
+        address _owner = owner();
+        (uint256 chainId, address tokenContract, uint256 tokenId) = this
+            .token();
+        if (chainId != block.chainid)
+            revert("!chainid-not-equal-block-chainid");
+
+        if (
+            _owner == _from ||
+            _owner == _operator ||
+            isAuthorizedSender(_from, _operator, tokenContract, tokenId)
+        ) {
+            emit GiftedAccountERC1155Received(
+                _operator,
+                _from,
+                _id,
+                _value,
+                msg.sender,
+                tokenContract,
+                tokenId
+            );
+            return IERC1155Receiver.onERC1155Received.selector;
+        }
+
+        revert("!sender-not-authorized");
     }
 
-    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        return IERC1155Receiver.onERC1155BatchReceived.selector;
+    function onERC1155BatchReceived(
+        address _operator,
+        address _from,
+        uint256[] calldata _ids,
+        uint256[] calldata _values,
+        bytes calldata
+    ) external override returns (bytes4) {
+        address _owner = owner();
+        (uint256 chainId, address tokenContract, uint256 tokenId) = this
+            .token();
+        if (chainId != block.chainid)
+            revert("!chainid-not-equal-block-chainid");
+
+        if (
+            _owner == _from ||
+            _owner == _operator ||
+            isAuthorizedSender(_from, _operator, tokenContract, tokenId)
+        ) {
+            for (uint256 i = 0; i < _ids.length; i++) {
+                emit GiftedAccountERC1155Received(
+                    _operator,
+                    _from,
+                    _ids[i],
+                    _values[i],
+                    msg.sender,
+                    tokenContract,
+                    tokenId
+                );
+            }
+            return IERC1155Receiver.onERC1155BatchReceived.selector;
+        }
+
+        revert("!sender-not-authorized");
     }
+
     /// EIP 712
     /// domain separator
 
@@ -159,15 +288,18 @@ contract GiftedAccount is
 
     // Returns the domain separator, updating it if chainID changes
     function domainSeparator() public view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                keccak256(bytes(name())),
-                keccak256(bytes("1")),
-                block.chainid,
-                address(this)
-            )
-        );
+        return
+            keccak256(
+                abi.encode(
+                    keccak256(
+                        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                    ),
+                    keccak256(bytes(name())),
+                    keccak256(bytes("1")),
+                    block.chainid,
+                    address(this)
+                )
+            );
     }
 
     /// internal
@@ -175,7 +307,8 @@ contract GiftedAccount is
     function isAuthorized(address caller) public view returns (bool) {
         if (caller == owner()) return true;
 
-        if (address(_guardian) != address(0) && _guardian.isExecutor(caller)) return true;
+        if (address(_guardian) != address(0) && _guardian.isExecutor(caller))
+            return true;
 
         return false;
     }
@@ -199,7 +332,11 @@ contract GiftedAccount is
         _nonce++;
     }
 
-    function call(address to, uint256 value, bytes calldata data) internal returns (bytes memory result) {
+    function call(
+        address to,
+        uint256 value,
+        bytes calldata data
+    ) internal returns (bytes memory result) {
         _incrementNonce();
 
         emit TransactionExecuted(to, value, data);
@@ -214,7 +351,12 @@ contract GiftedAccount is
         }
     }
 
-    function _recover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
+    function _recover(
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal pure returns (address) {
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
         // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
         // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
@@ -224,7 +366,10 @@ contract GiftedAccount is
         // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
         // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
         // these malleable signatures as well.
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+        if (
+            uint256(s) >
+            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        ) {
             revert("ECDSA: invalid signature 's' value");
         }
 
@@ -241,18 +386,25 @@ contract GiftedAccount is
 
     // d83869c5bb54ba35eb2fa505a0206fde32206a3325ac92b027126dca04d8cdae
     bytes32 public constant CALL_PERMIT_TYPEHASH =
-        keccak256("CallPermit(address to, uint256 value, byte data, uint256 deadline, uint256 nonce)");
+        keccak256(
+            "CallPermit(address to, uint256 value, byte data, uint256 deadline, uint256 nonce)"
+        );
 
     /// external
 
-    function getTypedCallPermitHash(address to, uint256 value, bytes calldata data, uint256 deadline)
-        public
-        view
-        returns (bytes32 callHash)
-    {
-        bytes32 hashStruct = keccak256(abi.encode(CALL_PERMIT_TYPEHASH, to, value, data, deadline, nonce()));
+    function getTypedCallPermitHash(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        uint256 deadline
+    ) public view returns (bytes32 callHash) {
+        bytes32 hashStruct = keccak256(
+            abi.encode(CALL_PERMIT_TYPEHASH, to, value, data, deadline, nonce())
+        );
         bytes32 eip712DomainHash = domainSeparator();
-        callHash = keccak256(abi.encodePacked(uint16(0x1901), eip712DomainHash, hashStruct));
+        callHash = keccak256(
+            abi.encodePacked(uint16(0x1901), eip712DomainHash, hashStruct)
+        );
     }
 
     function getTypedCallPermitHash(
@@ -262,9 +414,20 @@ contract GiftedAccount is
         uint256 deadline,
         uint256 encodeNonce
     ) public view returns (bytes32 callHash) {
-        bytes32 hashStruct = keccak256(abi.encode(CALL_PERMIT_TYPEHASH, to, value, data, deadline, encodeNonce));
+        bytes32 hashStruct = keccak256(
+            abi.encode(
+                CALL_PERMIT_TYPEHASH,
+                to,
+                value,
+                data,
+                deadline,
+                encodeNonce
+            )
+        );
         bytes32 eip712DomainHash = domainSeparator();
-        callHash = keccak256(abi.encodePacked(uint16(0x1901), eip712DomainHash, hashStruct));
+        callHash = keccak256(
+            abi.encodePacked(uint16(0x1901), eip712DomainHash, hashStruct)
+        );
     }
 
     function executeTypedCallPermit(
@@ -307,43 +470,59 @@ contract GiftedAccount is
         bytes32 s
     ) external {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        string memory message = getTransferNFTPermitMessage(tokenContract, tokenId, to, deadline);
+        string memory message = getTransferNFTPermitMessage(
+            tokenContract,
+            tokenId,
+            to,
+            deadline
+        );
         bytes32 signHash = toEthPersonalSignedMessageHash(bytes(message));
 
         address signer = _recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
         IERC721(tokenContract).safeTransferFrom(address(this), to, tokenId);
-        emit CallTransferNFTPermit(address(this), to, tokenContract, tokenId, deadline, nonce(), signer, msg.sender);
+        emit CallTransferNFTPermit(
+            address(this),
+            to,
+            tokenContract,
+            tokenId,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
     }
 
-    function getTransferNFTPermitMessage(address tokenContract, uint256 tokenId, address to, uint256 deadline)
-        public
-        view
-        returns (string memory)
-    {
-        return string.concat(
-            "I want to transfer NFT",
-            "\n From: ",
-            address(this).toHexString(),
-            "\n NFT: ",
-            tokenContract.toHexString(),
-            "\n TokenId: ",
-            tokenId.toString(),
-            "\n To: ",
-            to.toHexString(),
-            "\n Before: ",
-            deadline.toString(),
-            ".",
-            "\n Nonce: ",
-            nonce().toString(),
-            "\n Chain ID: ",
-            block.chainid.toString(),
-            "\n BY: ",
-            name(),
-            "\n Version: ",
-            "0.0.1"
-        );
+    function getTransferNFTPermitMessage(
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string.concat(
+                "I want to transfer NFT",
+                "\n From: ",
+                address(this).toHexString(),
+                "\n NFT: ",
+                tokenContract.toHexString(),
+                "\n TokenId: ",
+                tokenId.toString(),
+                "\n To: ",
+                to.toHexString(),
+                "\n Before: ",
+                deadline.toString(),
+                ".",
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.1"
+            );
     }
 
     // Method to transfer ERC1155 tokens with a permit
@@ -358,15 +537,35 @@ contract GiftedAccount is
         bytes32 s
     ) external {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        string memory message = getTransferERC1155PermitMessage(tokenContract, tokenId, amount, to, deadline);
+        string memory message = getTransferERC1155PermitMessage(
+            tokenContract,
+            tokenId,
+            amount,
+            to,
+            deadline
+        );
         bytes32 signHash = toEthPersonalSignedMessageHash(bytes(message));
 
         address signer = ECDSA.recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
-        IERC1155(tokenContract).safeTransferFrom(address(this), to, tokenId, amount, "");
+        IERC1155(tokenContract).safeTransferFrom(
+            address(this),
+            to,
+            tokenId,
+            amount,
+            ""
+        );
         emit CallTransferERC1155Permit(
-            address(this), to, tokenContract, tokenId, amount, deadline, nonce(), signer, msg.sender
+            address(this),
+            to,
+            tokenContract,
+            tokenId,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
         );
     }
 
@@ -378,30 +577,39 @@ contract GiftedAccount is
         address to,
         uint256 deadline
     ) public view returns (string memory) {
-        return string.concat(
-            "I authorize the transfer of ERC1155 tokens",
-            "\n Token Contract: ",
-            Strings.toHexString(uint256(uint160(tokenContract)), 20),
-            "\n Token ID: ",
-            Strings.toString(tokenId),
-            "\n Amount: ",
-            Strings.toString(amount),
-            "\n To: ",
-            Strings.toHexString(uint256(uint160(to)), 20),
-            "\n Deadline: ",
-            Strings.toString(deadline),
-            "\n Nonce: ",
-            nonce().toString(),
-            "\n Chain ID: ",
-            block.chainid.toString(),
-            "\n BY: ",
-            name(),
-            "\n Version: ",
-            "0.0.1"
-        );
+        return
+            string.concat(
+                "I authorize the transfer of ERC1155 tokens",
+                "\n Token Contract: ",
+                Strings.toHexString(uint256(uint160(tokenContract)), 20),
+                "\n Token ID: ",
+                Strings.toString(tokenId),
+                "\n Amount: ",
+                Strings.toString(amount),
+                "\n To: ",
+                Strings.toHexString(uint256(uint160(to)), 20),
+                "\n Deadline: ",
+                Strings.toString(deadline),
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.1"
+            );
     }
 
-    function toEthPersonalSignedMessageHash(bytes memory _msg) public pure returns (bytes32 signHash) {
-        signHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", _msg.length.toString(), _msg));
+    function toEthPersonalSignedMessageHash(
+        bytes memory _msg
+    ) public pure returns (bytes32 signHash) {
+        signHash = keccak256(
+            abi.encodePacked(
+                "\x19Ethereum Signed Message:\n",
+                _msg.length.toString(),
+                _msg
+            )
+        );
     }
 }

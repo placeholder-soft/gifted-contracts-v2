@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/access/Ownable2Step.sol";
@@ -9,10 +9,6 @@ import "./interfaces/IGiftedAccount.sol";
 contract GiftedAccountGuardian is Ownable2Step, IGiftedAccountGuardian {
     mapping(address => bool) private _isExecutor;
     address private _implementation;
-
-    mapping(address => address) _customAccountImplementation;
-
-    event CustomAccountImplementationUpdated(address indexed account, address implementation);
 
     constructor() Ownable(msg.sender) {}
 
@@ -38,21 +34,5 @@ contract GiftedAccountGuardian is Ownable2Step, IGiftedAccountGuardian {
         if (_isExecutor[executor]) return true;
         if (executor == owner()) return true;
         return false;
-    }
-
-    // @dev this function can only be called by the owner of the token,
-    // not by anyone else, even if they are an executor, which yield the
-    // control to the token holder.
-    function setCustomAccountImplementation(address account, address implementation) external {
-        require(
-            implementation != address(0) && implementation.code.length != 0, "!implementation-is-not-a-contract-or-zero"
-        );
-        require(IGiftedAccount(account).isOwner(msg.sender));
-        _customAccountImplementation[account] = implementation;
-        emit CustomAccountImplementationUpdated(account, implementation);
-    }
-
-    function getCustomAccountImplementation(address account) external view returns (address) {
-        return _customAccountImplementation[account];
     }
 }

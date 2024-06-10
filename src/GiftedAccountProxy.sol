@@ -22,11 +22,6 @@ contract GiftedAccountProxy is Proxy {
     // the override can only be controlled by the token holder, not the proxy itself or account guardian.
     // @return address of the implementation
     function _implementation() internal view virtual override returns (address) {
-        address customImpl = _accountGuardian.getCustomAccountImplementation(address(this));
-        if (customImpl != address(0)) {
-            return customImpl;
-        }
-
         return _accountGuardian.getImplementation();
     }
 }

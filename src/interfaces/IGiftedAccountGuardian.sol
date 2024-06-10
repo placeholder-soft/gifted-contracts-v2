@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 interface IGiftedAccountGuardian {
@@ -10,7 +10,4 @@ interface IGiftedAccountGuardian {
     function setExecutor(address executor, bool trusted) external;
 
     function getImplementation() external view returns (address);
-
-    function getCustomAccountImplementation(address account) external view returns (address);
-    function setGiftedAccountImplementation(address newImplementation) external;
 }
