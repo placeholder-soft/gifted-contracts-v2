@@ -298,8 +298,6 @@ contract GiftedBox is
         handleSponsorshipAndTransfer(tokenAccount, tokenId);
 
         emit GiftedBoxSentToVault(msg.sender, recipient, tokenId);
-        // 1 -> sendGift : got tokenId + address 100
-        // 2 -> transferNFT to tokenId's address: 100 
     }
 
     /**
