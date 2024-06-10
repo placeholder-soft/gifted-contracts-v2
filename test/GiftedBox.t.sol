@@ -19,11 +19,7 @@ contract MockERC721 is ERC721 {
 }
 
 interface TestEvents {
-    event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed tokenId
-    );
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 }
 
 contract GiftedBoxTest is Test, TestEvents {
@@ -99,9 +95,7 @@ contract GiftedBoxTest is Test, TestEvents {
 
         assertEq(giftSender, IERC721(giftedBox).ownerOf(tokenId));
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
             assertEq(sender, address(0));
             assertEq(recipient, address(0));
         }
@@ -117,9 +111,7 @@ contract GiftedBoxTest is Test, TestEvents {
         giftedBox.claimGiftByAdmin(tokenId, giftRecipient, false);
         assertEq(giftRecipient, IERC721(giftedBox).ownerOf(tokenId));
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
             assertEq(sender, address(0));
             assertEq(recipient, address(0));
         }
@@ -141,9 +133,7 @@ contract GiftedBoxTest is Test, TestEvents {
 
         assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId));
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
             assertEq(sender, giftSender);
             assertEq(recipient, giftRecipient);
         }
@@ -151,9 +141,7 @@ contract GiftedBoxTest is Test, TestEvents {
         vm.prank(giftRecipient);
         giftedBox.claimGift(tokenId, false);
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
             assertEq(address(0), sender);
             assertEq(address(0), recipient);
         }

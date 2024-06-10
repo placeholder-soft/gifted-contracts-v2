@@ -12,3 +12,8 @@ docs/
 
 # Dotenv file
 .env
+.env.override
+.env.**.override
+env/env.**.override
+keystores/passwords/**
+!keystores/passwords/local

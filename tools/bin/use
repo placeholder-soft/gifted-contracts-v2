@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+BASE="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && cd ../.. && pwd )"
+
+pushd "$ROOT" > /dev/null || exit 1
+
+red() { echo -e "\033[0;31m$1\033[0m"; }
+
+green () { echo -e "\033[1;32m$1\033[0m"; }
+
+main() {
+    ENV=$1
+
+    if [ -z "$ENV" ]; then
+        red "Usage: $0 <env>"
+        exit 1
+    fi
+
+    if [ -f "env/.env.$ENV" ]; then
+        green "use .env.$ENV"
+    else
+        echo "No $(red "env/.env.$ENV") file found"
+        exit 1
+    fi
+
+    echo $ENV | tools/bin/pipe_env_var CURRENT_PROFILE
+    echo "switched to env $(green $ENV). current profile: $CURRENT_PROFILE"
+}
+
+if [ -n "${1-}" ]
+then
+  main "$1" "$2"
+else
+  printf 'use ENV \nexample: use dev'
+fi

@@ -31,22 +31,9 @@ contract GiftedBox is
         address recipient;
     }
 
-    event GiftedBoxSentToVault(
-        address indexed from,
-        address indexed to,
-        uint256 tokenId
-    );
-    event GiftBoxClaimed(
-        uint256 tokenId,
-        address indexed claimer,
-        bool asSender
-    );
-    event GiftBoxClaimedByAdmin(
-        uint256 tokenId,
-        address indexed claimer,
-        bool asSender,
-        address indexed admin
-    );
+    event GiftedBoxSentToVault(address indexed from, address indexed to, uint256 tokenId);
+    event GiftBoxClaimed(uint256 tokenId, address indexed claimer, bool asSender);
+    event GiftBoxClaimedByAdmin(uint256 tokenId, address indexed claimer, bool asSender, address indexed admin);
     // endregion
 
     // region storage
@@ -61,9 +48,7 @@ contract GiftedBox is
         _disableInitializers();
     }
 
-    function initialize(
-        address defaultAdmin
-    ) public initializer {
+    function initialize(address defaultAdmin) public initializer {
         __ERC721_init("GiftBoxV2", "GB");
         __ERC721Pausable_init();
         __AccessControl_init();
@@ -85,18 +70,12 @@ contract GiftedBox is
         _unpause();
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 
     // endregion
 
     // region overrides
-    function _update(
-        address to,
-        uint256 tokenId,
-        address auth
-    )
+    function _update(address to, uint256 tokenId, address auth)
         internal
         override(ERC721Upgradeable, ERC721PausableUpgradeable)
         returns (address)
@@ -104,9 +83,7 @@ contract GiftedBox is
         return super._update(to, tokenId, auth);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         override(ERC721Upgradeable, AccessControlUpgradeable)
@@ -129,14 +106,10 @@ contract GiftedBox is
         _safeMint(recipient, tokenId);
         _update(address(this), tokenId, recipient);
 
-        giftingRecords[tokenId] = GiftingRecord({
-            sender: msg.sender,
-            recipient: recipient
-        });
+        giftingRecords[tokenId] = GiftingRecord({sender: msg.sender, recipient: recipient});
 
         emit GiftedBoxSentToVault(msg.sender, recipient, tokenId);
     }
-
 
     /**
      * @notice Resends a gift to a new recipient.
@@ -146,10 +119,7 @@ contract GiftedBox is
     function resendGift(uint256 tokenId, address recipient) public {
         safeTransferFrom(address(msg.sender), address(this), tokenId);
 
-        giftingRecords[tokenId] = GiftingRecord({
-            sender: msg.sender,
-            recipient: recipient
-        });
+        giftingRecords[tokenId] = GiftingRecord({sender: msg.sender, recipient: recipient});
 
         emit GiftedBoxSentToVault(msg.sender, recipient, tokenId);
     }
@@ -172,18 +142,13 @@ contract GiftedBox is
         emit GiftBoxClaimed(tokenId, msg.sender, asSender);
     }
 
-
     /**
      * @notice Allows an admin to claim a gift to sender or recipient
      * @param tokenId The ID of the token to be claimed.
      * @param claimer The address of the user claiming the gift.
      * @param toSender A boolean indicating if the gift should be claimed to the sender.
      */
-    function claimGiftByAdmin(
-        uint256 tokenId,
-        address claimer,
-        bool toSender
-    ) public onlyRole(CLAIM_ADMIN_ROLE) {
+    function claimGiftByAdmin(uint256 tokenId, address claimer, bool toSender) public onlyRole(CLAIM_ADMIN_ROLE) {
         GiftingRecord memory record = giftingRecords[tokenId];
         if (toSender) {
             require(record.sender == claimer, "!not-sender");
@@ -196,7 +161,6 @@ contract GiftedBox is
         emit GiftBoxClaimed(tokenId, claimer, toSender);
         emit GiftBoxClaimedByAdmin(tokenId, claimer, toSender, msg.sender);
     }
-
 
     // endregion
 }

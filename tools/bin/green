@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo -e "\033[1;32m$1\033[0m";
