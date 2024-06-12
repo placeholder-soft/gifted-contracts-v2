@@ -31,7 +31,7 @@ contract GiftedBox is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    bytes32 public constant CLAIM_ADMIN_ROLE = keccak256("CLAIM_ADMIN_ROLE");
+    bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
 
     event GiftedBoxSentToVault(
         address indexed from,
@@ -102,7 +102,7 @@ contract GiftedBox is
         _grantRole(PAUSER_ROLE, defaultAdmin);
         _grantRole(MINTER_ROLE, defaultAdmin);
         _grantRole(UPGRADER_ROLE, defaultAdmin);
-        _grantRole(CLAIM_ADMIN_ROLE, defaultAdmin);
+        _grantRole(CLAIMER_ROLE, defaultAdmin);
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -341,10 +341,10 @@ contract GiftedBox is
         emit GiftedBoxClaimed(tokenId, role, record.sender, record.recipient, record.operator);
     }
 
-    function claimGiftByAdmin(
+    function claimGiftByClaimer(
         uint256 tokenId,
         GiftingRole role
-    ) public onlyRole(CLAIM_ADMIN_ROLE) {
+    ) public onlyRole(CLAIMER_ROLE) {
         GiftingRecord memory record = giftingRecords[tokenId];
         if (role == GiftingRole.SENDER)  {
             require(record.sender != address(0), "!invalid-sender");

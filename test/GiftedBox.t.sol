@@ -142,7 +142,7 @@ contract GiftedBoxTest is Test, TestEvents {
         assertEq(operator, address(0));
     }
 
-    function testClaimGiftByAdmin() public {
+    function testclaimGiftByClaimer() public {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);
         address giftRecipient = vm.addr(2);
@@ -150,7 +150,7 @@ contract GiftedBoxTest is Test, TestEvents {
 
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
-        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.SENDER);
+        giftedBox.claimGiftByClaimer(tokenId, GiftingRole.SENDER);
 
         assertEq(giftSender, IERC721(giftedBox).ownerOf(tokenId));
         {
@@ -166,7 +166,7 @@ contract GiftedBoxTest is Test, TestEvents {
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
 
-        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.RECIPIENT);
+        giftedBox.claimGiftByClaimer(tokenId, GiftingRole.RECIPIENT);
         assertEq(giftRecipient, IERC721(giftedBox).ownerOf(tokenId));
         {
             (address sender, address recipient, address operator) = giftedBox
@@ -182,7 +182,7 @@ contract GiftedBoxTest is Test, TestEvents {
         giftedBox.sendGift(giftSender, giftRecipient);
 
         vm.expectRevert("!invalid-role");
-        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.OPERATOR);
+        giftedBox.claimGiftByClaimer(tokenId, GiftingRole.OPERATOR);
     }
 
     // endregion Gifting Actions
