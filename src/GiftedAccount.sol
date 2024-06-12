@@ -207,7 +207,10 @@ contract GiftedAccount is
     ) internal view returns (bool) {
         GiftingRecord memory record = IGiftedBox(tokenContract)
             .getGiftingRecord(tokenId);
-        return (record.sender == _from || record.sender == _operator);
+        return (record.operator == _from ||
+            record.operator == _operator ||
+            record.sender == _from ||
+            record.sender == _operator);
     }
 
     // ============ ERC1155Receiver Interface ============

@@ -36,18 +36,22 @@ contract GiftedBox is
     event GiftedBoxSentToVault(
         address indexed from,
         address indexed to,
+        address operator,
         uint256 tokenId
     );
     event GiftedBoxClaimed(
         uint256 tokenId,
-        address indexed claimer,
-        bool asSender
+        GiftingRole role,
+        address sender,
+        address recipient,
+        address operator
     );
     event GiftedBoxClaimedByAdmin(
         uint256 tokenId,
-        address indexed claimer,
-        bool asSender,
-        address indexed admin
+        GiftingRole role,
+        address sender,
+        address recipient,
+        address operator
     );
 
     event AccountImplUpdated(address indexed newAccountImpl);
@@ -150,21 +154,21 @@ contract GiftedBox is
     }
 
     function setRegistry(
-         address newRegistry
+        address newRegistry
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         registry = ERC6551Registry(newRegistry);
         emit RegistryUpdated(address(newRegistry));
     }
 
     function setAccountGuardian(
-         address newGuardian
+        address newGuardian
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         guardian = GiftedAccountGuardian(newGuardian);
         emit GuardianUpdated(address(newGuardian));
     }
 
     function setGasSponsorBook(
-         address newGasSponsorBook
+        address newGasSponsorBook
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         gasSponsorBook = IGasSponsorBook(newGasSponsorBook);
         emit GasSponsorBookUpdated(address(newGasSponsorBook));
@@ -189,6 +193,7 @@ contract GiftedBox is
     function generateTicketID(address account) public pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(account)));
     }
+
     function getGiftingRecord(
         uint256 tokenId
     ) public view returns (GiftingRecord memory) {
@@ -198,7 +203,10 @@ contract GiftedBox is
     // endregion
 
     // region internal functions
-    function createAccountIfNeeded(uint256 tokenId, address tokenAccount) internal {
+    function createAccountIfNeeded(
+        uint256 tokenId,
+        address tokenAccount
+    ) internal {
         if (tokenAccount.code.length == 0) {
             registry.createAccount(
                 address(accountImpl),
@@ -206,10 +214,14 @@ contract GiftedBox is
                 address(this),
                 tokenId,
                 0,
-                abi.encodeWithSignature("initialize(address)", address(guardian))
+                abi.encodeWithSignature(
+                    "initialize(address)",
+                    address(guardian)
+                )
             );
         }
     }
+
     // endregion
 
     // region gas sponsorship
@@ -282,80 +294,72 @@ contract GiftedBox is
      * @dev Mints a new token, updates the gifting records, and emits an event.
      * @param recipient The address of the recipient who will receive the gift.
      */
-    function sendGift(address recipient) public payable whenNotPaused {
+    function sendGift(
+        address sender,
+        address recipient
+    ) public payable whenNotPaused {
+        require(sender != address(0), "!as-sender-address-0");
+        require(sender != recipient, "!as-sender-recipient-same");
+
         uint256 tokenId = _nextTokenId++;
         _safeMint(recipient, tokenId);
         _update(address(this), tokenId, recipient);
 
         giftingRecords[tokenId] = GiftingRecord({
-            sender: msg.sender,
+            operator: msg.sender,
+            sender: sender,
             recipient: recipient
         });
 
-
-        address tokenAccount = registry.account(address(accountImpl), block.chainid, address(this), tokenId, 0);
+        address tokenAccount = registry.account(
+            address(accountImpl),
+            block.chainid,
+            address(this),
+            tokenId,
+            0
+        );
         createAccountIfNeeded(tokenId, tokenAccount);
         handleSponsorshipAndTransfer(tokenAccount, tokenId);
 
-        emit GiftedBoxSentToVault(msg.sender, recipient, tokenId);
+        emit GiftedBoxSentToVault(sender, recipient, msg.sender, tokenId);
     }
 
-    /**
-     * @notice Resends a gift to a new recipient.
-     * @param tokenId The ID of the token to resend.
-     * @param recipient The address of the new recipient.
-     */
-    function resendGift(uint256 tokenId, address recipient) public {
-        safeTransferFrom(address(msg.sender), address(this), tokenId);
-
-        giftingRecords[tokenId] = GiftingRecord({
-            sender: msg.sender,
-            recipient: recipient
-        });
-
-        emit GiftedBoxSentToVault(msg.sender, recipient, tokenId);
-    }
-
-    /**
-     * @notice Claims a gift.
-     * @param tokenId The ID of the token to claim.
-     * @param asSender Boolean indicating if the sender is claiming the gift.
-     */
-    function claimGift(uint256 tokenId, bool asSender) public {
+    function claimGift(uint256 tokenId, GiftingRole role) public whenNotPaused {
         GiftingRecord memory record = giftingRecords[tokenId];
-        if (asSender) {
+        if (role == GiftingRole.SENDER)  {
             require(record.sender == msg.sender, "!not-sender");
-        } else {
+        }
+        else if (role == GiftingRole.RECIPIENT) {
             require(record.recipient == msg.sender, "!not-recipient");
         }
-
-        delete giftingRecords[tokenId];
-        _update(msg.sender, tokenId, address(this));
-        emit GiftedBoxClaimed(tokenId, msg.sender, asSender);
-    }
-
-    /**
-     * @notice Allows an admin to claim a gift to sender or recipient
-     * @param tokenId The ID of the token to be claimed.
-     * @param claimer The address of the user claiming the gift.
-     * @param toSender A boolean indicating if the gift should be claimed to the sender.
-     */
-    function claimGiftByAdmin(
-        uint256 tokenId,
-        address claimer,
-        bool toSender
-    ) public onlyRole(CLAIM_ADMIN_ROLE) {
-        GiftingRecord memory record = giftingRecords[tokenId];
-        if (toSender) {
-            require(record.sender == claimer, "!not-sender");
-        } else {
-            require(record.recipient == claimer, "!not-recipient");
+        else {
+            revert("!invalid-role");
         }
 
         delete giftingRecords[tokenId];
-        _update(claimer, tokenId, address(this));
-        emit GiftedBoxClaimed(tokenId, claimer, toSender);
-        emit GiftedBoxClaimedByAdmin(tokenId, claimer, toSender, msg.sender);
+        _update(msg.sender, tokenId, address(0));
+        emit GiftedBoxClaimed(tokenId, role, record.sender, record.recipient, record.operator);
+    }
+
+    function claimGiftByAdmin(
+        uint256 tokenId,
+        GiftingRole role
+    ) public onlyRole(CLAIM_ADMIN_ROLE) {
+        GiftingRecord memory record = giftingRecords[tokenId];
+        if (role == GiftingRole.SENDER)  {
+            require(record.sender != address(0), "!invalid-sender");
+            _update(record.sender, tokenId, address(0));
+        }
+        else if (role == GiftingRole.RECIPIENT) {
+            require(record.recipient!= address(0), "!invalid-recipient");
+            _update(record.recipient, tokenId, address(0));
+        }
+        else {
+            revert("!invalid-role");
+        }
+
+        delete giftingRecords[tokenId];
+        emit GiftedBoxClaimedByAdmin(tokenId, role, record.sender, record.recipient, record.operator);
     }
     // endregion
 }

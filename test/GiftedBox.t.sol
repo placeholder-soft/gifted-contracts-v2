@@ -88,121 +88,101 @@ contract GiftedBoxTest is Test, TestEvents {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);
         address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
 
-        vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId));
 
-        (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(giftSender, sender);
         assertEq(giftRecipient, recipient);
+        assertEq(giftOperator, operator);
     }
 
     function testClaimGiftByRecipient() public {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);
         address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
 
-        vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         vm.prank(giftRecipient);
-        giftedBox.claimGift(tokenId, false);
+        giftedBox.claimGift(tokenId, GiftingRole.RECIPIENT);
 
         assertEq(giftRecipient, IERC721(giftedBox).ownerOf(tokenId));
-        (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(sender, address(0));
         assertEq(recipient, address(0));
+        assertEq(operator, address(0));
     }
 
     function testClaimGiftBySender() public {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);
         address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
-
-        vm.prank(giftSender);
-        giftedBox.claimGift(tokenId, true);
+        giftedBox.claimGift(tokenId, GiftingRole.SENDER);
 
         assertEq(giftSender, IERC721(giftedBox).ownerOf(tokenId));
-        (address sender, address recipient) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(sender, address(0));
         assertEq(recipient, address(0));
+        assertEq(operator, address(0));
     }
 
     function testClaimGiftByAdmin() public {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);
         address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
 
-        vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
-
-        giftedBox.claimGiftByAdmin(tokenId, giftSender, true);
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.SENDER);
 
         assertEq(giftSender, IERC721(giftedBox).ownerOf(tokenId));
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient, address operator) = giftedBox
+                .giftingRecords(tokenId);
             assertEq(sender, address(0));
             assertEq(recipient, address(0));
+            assertEq(operator, address(0));
         }
 
         tokenId++;
 
-        vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
-        vm.expectRevert("!not-recipient");
-        giftedBox.claimGiftByAdmin(tokenId, giftSender, false);
-
-        giftedBox.claimGiftByAdmin(tokenId, giftRecipient, false);
+        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.RECIPIENT);
         assertEq(giftRecipient, IERC721(giftedBox).ownerOf(tokenId));
         {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
+            (address sender, address recipient, address operator) = giftedBox
+                .giftingRecords(tokenId);
             assertEq(sender, address(0));
             assertEq(recipient, address(0));
-        }
-    }
-
-    function testResendGift() public {
-        uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-
-        vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
-
-        vm.prank(giftSender);
-        giftedBox.claimGift(tokenId, true);
-
-        vm.prank(giftSender);
-        giftedBox.resendGift(tokenId, giftRecipient);
-
-        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId));
-        {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
-            assertEq(sender, giftSender);
-            assertEq(recipient, giftRecipient);
+            assertEq(operator, address(0));
         }
 
-        vm.prank(giftRecipient);
-        giftedBox.claimGift(tokenId, false);
-        {
-            (address sender, address recipient) = giftedBox.giftingRecords(
-                tokenId
-            );
-            assertEq(address(0), sender);
-            assertEq(address(0), recipient);
-        }
+        tokenId++;
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        vm.expectRevert("!invalid-role");
+        giftedBox.claimGiftByAdmin(tokenId, GiftingRole.OPERATOR);
     }
 
     // endregion Gifting Actions
@@ -215,7 +195,7 @@ contract GiftedBoxTest is Test, TestEvents {
         address giftRecipient = vm.addr(2);
 
         vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         address account = registry.account(
             address(giftedAccount),
@@ -233,7 +213,7 @@ contract GiftedBoxTest is Test, TestEvents {
         IERC6551Account accountInstance = IERC6551Account(payable(account));
 
         vm.prank(vm.addr(1));
-        giftedBox.claimGift(tokenId, true);
+        giftedBox.claimGift(tokenId, GiftingRole.SENDER);
 
         assertEq(accountInstance.owner(), vm.addr(1));
 
@@ -267,7 +247,7 @@ contract GiftedBoxTest is Test, TestEvents {
         address randomAccount = vm.addr(3);
 
         vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         address tokenAccount = giftedBox.tokenAccountAddress(tokenId);
 
@@ -297,7 +277,7 @@ contract GiftedBoxTest is Test, TestEvents {
         address randomAccount = vm.addr(3);
 
         vm.prank(giftSender);
-        giftedBox.sendGift(giftRecipient);
+        giftedBox.sendGift(giftSender, giftRecipient);
 
         address tokenAccount = giftedBox.tokenAccountAddress(tokenId);
 
