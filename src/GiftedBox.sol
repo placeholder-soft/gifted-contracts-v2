@@ -13,6 +13,7 @@ import {GiftedAccount} from "./GiftedAccount.sol";
 import "./GiftedAccountGuardian.sol";
 import "./interfaces/IGasSponsorBook.sol";
 import "./interfaces/IGiftedBox.sol";
+import "./interfaces/IGiftedAccount.sol";
 import "erc6551/ERC6551Registry.sol";
 
 /// @custom:security-contact zitao@placeholdersoft.com
@@ -298,8 +299,8 @@ contract GiftedBox is
         address sender,
         address recipient
     ) public payable whenNotPaused {
-        require(sender != address(0), "!as-sender-address-0");
-        require(sender != recipient, "!as-sender-recipient-same");
+        require(sender != address(0), "!sender-address-0");
+        require(sender != recipient, "!sender-recipient-same");
 
         uint256 tokenId = _nextTokenId++;
         _safeMint(recipient, tokenId);
@@ -361,5 +362,92 @@ contract GiftedBox is
         delete giftingRecords[tokenId];
         emit GiftedBoxClaimedByAdmin(tokenId, role, record.sender, record.recipient, record.operator);
     }
-    // endregion
+
+    // endregion Gifting Actions
+
+    
+    // region Forward Methods
+    function transferERC721PermitMessage(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory) {
+        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+        return account.getTransferERC721PermitMessage(
+            tokenContract,
+            tokenId,
+            to,
+            deadline);
+    }
+
+    function transferERC721(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+
+        account.transferERC721(
+            tokenContract,
+            tokenId,
+            to,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+
+    function transferERC1155PermitMessage(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory) {
+        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+        return account.getTransferERC1155PermitMessage(
+            tokenContract,
+            tokenId,
+            amount,
+            to,
+            deadline
+        );
+    }
+
+    function transferERC1155(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+
+        account.transferERC1155(
+            tokenContract,
+            tokenId,
+            amount,
+            to,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+    // endregion Forward Methods
 }
+
+    

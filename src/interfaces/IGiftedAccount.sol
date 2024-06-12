@@ -9,7 +9,14 @@ interface IGiftedAccount {
 
     function setAccountGuardian(address guardian) external;
 
-    function transferToken(
+    function getTransferERC721PermitMessage(
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function transferERC721(
         address tokenContract,
         uint256 tokenId,
         address to,
@@ -19,7 +26,15 @@ interface IGiftedAccount {
         bytes32 s
     ) external;
 
-    function transferERC1155Token(
+    function getTransferERC1155PermitMessage(
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function transferERC1155(
         address tokenContract,
         uint256 tokenId,
         uint256 amount,

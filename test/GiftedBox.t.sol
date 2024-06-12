@@ -48,7 +48,7 @@ interface TestEvents {
 }
 
 contract GiftedBoxTest is Test, TestEvents {
-    MockERC721 internal mockNFT;
+    MockERC721 internal mockERC721;
     MockERC1155 internal mockERC1155;
     GiftedBox internal giftedBox;
     ERC6551Registry internal registry;
@@ -57,7 +57,7 @@ contract GiftedBoxTest is Test, TestEvents {
 
     // region Setup
     function setUp() public {
-        mockNFT = new MockERC721();
+        mockERC721 = new MockERC721();
         mockERC1155 = new MockERC1155();
 
         GiftedAccount giftedAccountImpl = new GiftedAccount();
@@ -253,21 +253,21 @@ contract GiftedBoxTest is Test, TestEvents {
 
         // !important: only the token owner can transfer the token to tokenBound account
         // to prevent front running attack
-        mockNFT.mint(randomAccount, 100);
+        mockERC721.mint(randomAccount, 100);
         vm.expectRevert("!sender-not-authorized");
         vm.prank(randomAccount);
-        mockNFT.safeTransferFrom(randomAccount, tokenAccount, 100);
+        mockERC721.safeTransferFrom(randomAccount, tokenAccount, 100);
 
         // sender is able to transfer the token to tokenBound account
-        mockNFT.mint(giftSender, 101);
+        mockERC721.mint(giftSender, 101);
         vm.prank(giftSender);
-        mockNFT.safeTransferFrom(giftSender, tokenAccount, 101);
+        mockERC721.safeTransferFrom(giftSender, tokenAccount, 101);
 
         // recipient is not able to transfer the token to tokenBound account
-        mockNFT.mint(giftRecipient, 102);
+        mockERC721.mint(giftRecipient, 102);
         vm.expectRevert("!sender-not-authorized");
         vm.prank(giftRecipient);
-        mockNFT.safeTransferFrom(giftRecipient, tokenAccount, 102);
+        mockERC721.safeTransferFrom(giftRecipient, tokenAccount, 102);
     }
 
     function testTokenBoundAccountERC1155() public {
@@ -342,5 +342,138 @@ contract GiftedBoxTest is Test, TestEvents {
             ""
         );
     }
+
     // endregion TokenBound Account
+
+    // region Forward Methods
+    function testTransferERC721() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 tokenId = 100;
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Mint ERC721 token to giftSender
+        mockERC721.mint(giftOperator, tokenId);
+
+        // Transfer ERC721 token to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC721.safeTransferFrom(
+            giftOperator,
+            address(tokenAccount),
+            tokenId
+        );
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC721PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC721),
+            tokenId,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC721 token using permit
+        vm.prank(giftSender);
+        giftedBox.transferERC721(
+            giftedBoxTokenId,
+            address(mockERC721),
+            tokenId,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC721.ownerOf(tokenId), tokenRecipient);
+    }
+
+    function testTransferERC1155() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 tokenId = 100;
+        uint256 amount = 10;
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Mint ERC1155 token to giftSender
+        mockERC1155.mint(giftOperator, tokenId, amount);
+
+        // Transfer ERC1155 token to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC1155.safeTransferFrom(
+            giftOperator,
+            address(tokenAccount),
+            tokenId,
+            amount,
+            ""
+        );
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC1155PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC1155),
+            tokenId,
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC1155 token using permit
+        vm.prank(giftSender);
+        giftedBox.transferERC1155(
+            giftedBoxTokenId,
+            address(mockERC1155),
+            tokenId,
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC1155.balanceOf(tokenRecipient, tokenId), amount);
+    }
+
+    // endregion Forward Methods
 }

@@ -46,7 +46,7 @@ contract GiftedAccount is
         _guardian = IGiftedAccountGuardian(guardian);
     }
 
-    /// events
+    // region Events
 
     event CallPermit(
         address indexed owner,
@@ -56,7 +56,7 @@ contract GiftedAccount is
     );
 
     // Event to log the transfer of an ERC1155 token with a permit
-    event CallTransferERC1155Permit(
+    event TransferERC1155Permit(
         address indexed from,
         address indexed to,
         address indexed tokenContract,
@@ -100,6 +100,19 @@ contract GiftedAccount is
         address giftedBoxContract,
         uint256 giftedBoxTokenId
     );
+
+    event TransferERC721Permit(
+        address indexed from,
+        address indexed to,
+        address indexed nft,
+        uint256 tokenId,
+        uint256 deadline,
+        uint256 nonce,
+        address signer,
+        address relayer
+    );
+    // endregion Events
+
     /// modifier
 
     /// @dev reverts if caller is not authorized to execute on this account
@@ -395,7 +408,7 @@ contract GiftedAccount is
 
     /// external
 
-    function getTypedCallPermitHash(
+    function hashTypedCallPermit(
         address to,
         uint256 value,
         bytes calldata data,
@@ -410,7 +423,7 @@ contract GiftedAccount is
         );
     }
 
-    function getTypedCallPermitHash(
+    function hashTypedCallPermit(
         address to,
         uint256 value,
         bytes calldata data,
@@ -443,7 +456,7 @@ contract GiftedAccount is
         bytes32 s
     ) external payable returns (bytes memory result) {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        bytes32 callHash = getTypedCallPermitHash(to, value, data, deadline);
+        bytes32 callHash = hashTypedCallPermit(to, value, data, deadline);
         address signer = _recover(callHash, v, r, s);
         require(signer == owner(), "!call-permit-invalid-signature");
 
@@ -452,18 +465,7 @@ contract GiftedAccount is
         return call(to, value, data);
     }
 
-    event CallTransferNFTPermit(
-        address indexed from,
-        address indexed to,
-        address indexed nft,
-        uint256 tokenId,
-        uint256 deadline,
-        uint256 nonce,
-        address signer,
-        address relayer
-    );
-
-    function transferToken(
+    function transferERC721(
         address tokenContract,
         uint256 tokenId,
         address to,
@@ -473,19 +475,19 @@ contract GiftedAccount is
         bytes32 s
     ) external {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        string memory message = getTransferNFTPermitMessage(
+        string memory message = getTransferERC721PermitMessage(
             tokenContract,
             tokenId,
             to,
             deadline
         );
-        bytes32 signHash = toEthPersonalSignedMessageHash(bytes(message));
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
 
         address signer = _recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
         IERC721(tokenContract).safeTransferFrom(address(this), to, tokenId);
-        emit CallTransferNFTPermit(
+        emit TransferERC721Permit(
             address(this),
             to,
             tokenContract,
@@ -497,7 +499,7 @@ contract GiftedAccount is
         );
     }
 
-    function getTransferNFTPermitMessage(
+    function getTransferERC721PermitMessage(
         address tokenContract,
         uint256 tokenId,
         address to,
@@ -505,7 +507,7 @@ contract GiftedAccount is
     ) public view returns (string memory) {
         return
             string.concat(
-                "I want to transfer NFT",
+                "I want to transfer ERC721",
                 "\n From: ",
                 address(this).toHexString(),
                 "\n NFT: ",
@@ -524,12 +526,12 @@ contract GiftedAccount is
                 "\n BY: ",
                 name(),
                 "\n Version: ",
-                "0.0.1"
+                "0.0.2"
             );
     }
 
     // Method to transfer ERC1155 tokens with a permit
-    function transferERC1155Token(
+    function transferERC1155(
         address tokenContract,
         uint256 tokenId,
         uint256 amount,
@@ -547,7 +549,7 @@ contract GiftedAccount is
             to,
             deadline
         );
-        bytes32 signHash = toEthPersonalSignedMessageHash(bytes(message));
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
 
         address signer = ECDSA.recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
@@ -559,7 +561,7 @@ contract GiftedAccount is
             amount,
             ""
         );
-        emit CallTransferERC1155Permit(
+        emit TransferERC1155Permit(
             address(this),
             to,
             tokenContract,
@@ -600,11 +602,11 @@ contract GiftedAccount is
                 "\n BY: ",
                 name(),
                 "\n Version: ",
-                "0.0.1"
+                "0.0.2"
             );
     }
 
-    function toEthPersonalSignedMessageHash(
+    function hashPersonalSignedMessage(
         bytes memory _msg
     ) public pure returns (bytes32 signHash) {
         signHash = keccak256(
