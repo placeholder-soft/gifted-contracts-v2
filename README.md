@@ -16,10 +16,8 @@ cast wallet i dev --private-key 0x000 --keystore-dir keystores/keys
 
 ### sepolia
 
-specify `--chain` to pickup etherscan key setting in `foundry.toml`
-
 ```
-forge script --chain sepolia script/deploy.sepolia.s.sol -vvvv --rpc-url $SEPOLIA_RPC_URL --broadcast --verify
+forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --verify
 ```
 
 ## Addresses
@@ -36,3 +34,29 @@ forge script --chain sepolia script/deploy.sepolia.s.sol -vvvv --rpc-url $SEPOLI
 | ERC6551Registry                   | 0x20A63B1532649FE80c9Df43fb827c155447fD75E |
 | Vault                             | 0xA00D0F5074e7565D5a71893396e19D19aa1f4629 |
 | GasSponsorBook                    | 0x11d0E669D24F682F7690fDf5407B20287050a74A |
+
+### [Base Sepolia](https://sepolia.basescan.org/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| GiftedAccountGuardian             | 0x06218F2deD0AA802001D8C93765a37Fc054eb62E |
+| GiftedAccount(IMPL)               | 0x20cb3200762ddDE5c502065dF805538D707DA76c |
+| GiftedAccount(GiftedAccountProxy) | 0xaC81a402efE13A12Da7421cff57c639054222126 |
+| ERC6551Registry                   | 0x60f1D5BC00E85ad6bf3899A244aefe71f56a0796 |
+| GiftedBox(IMPL)                   | 0x58D532e4CD220b1e5ae6f78F37731cf4632f6960 |
+| GiftedBox                         | 0x3425f33402D2f5E4d276a8E8653866c8afa0B9Af |
+| Vault                             | 0x91E5503C2924F0536353343f455628A18CceDC16 |
+| GasSponsorBook                    | 0x5C9d46832e29b1ec5972f144773Ef13afc93eA76 |
+
+### [Arbitrum Sepolia](https://sepolia.arbiscan.io/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| GiftedAccountGuardian             | 0x7C9612ed0716CC48474AcB908B4766239709d6A0 |
+| GiftedAccount(IMPL)               | 0x709c1743aaDa8657eb1928955D48684AbC1337FA |
+| GiftedAccount(GiftedAccountProxy) | 0xB765c1801dB3712d0330b83585496D27Fac01420 |
+| ERC6551Registry                   | 0xF0401c57Ff0Cb78Af5340dA8ABf79f7B1D9b4A50 |
+| GiftedBox(IMPL)                   | 0x8431483c91C856DCe2D8e07aD5B1b587Ad5df44D |
+| GiftedBox                         | 0x890f8F066b6C6946D220623d6cb36b2930B80c44 |
+| Vault                             | 0xF9aE127989ec2C8d683a0605a6dEc973f4B57d9b |
+| GasSponsorBook                    | 0x75260D56366fBa5933CB56efd5F671331fF9B6C5 |
