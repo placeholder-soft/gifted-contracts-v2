@@ -48,10 +48,13 @@ contract GasSponsorBook is AccessControl, IGasSponsorBook {
     }
 
     /// public
-    function addSponsorTicket(uint256 ticket) public payable onlyRole(SPONSOR_ROLE) {
-        require(msg.value >= _feePerSponsorTicket, "!fee-not-enough");
+    function addSponsorTicket(
+        uint256 ticket
+    ) public payable onlyRole(SPONSOR_ROLE) {
+        uint256 numberOfTickets = msg.value / _feePerSponsorTicket;
+        require(numberOfTickets > 0, "!fee-not-enough");
         _vault.transferIn{value: msg.value}(address(0), msg.sender, msg.value);
-        _sponsorTickets[ticket] += 1;
+        _sponsorTickets[ticket] += numberOfTickets;
         emit SponsorTicketUpdate(msg.sender, ticket);
     }
 

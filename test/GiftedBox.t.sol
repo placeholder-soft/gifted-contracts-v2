@@ -14,6 +14,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "../src/Vault.sol";
+import "../src/GasSponsorBook.sol";
 
 contract MockERC721 is ERC721 {
     constructor() ERC721("MockERC721", "M721") {}
@@ -54,6 +56,9 @@ contract GiftedBoxTest is Test, TestEvents {
     ERC6551Registry internal registry;
     GiftedAccountGuardian internal guardian = new GiftedAccountGuardian();
     GiftedAccount internal giftedAccount;
+    Vault public vault;
+    GasSponsorBook public sponsorBook;
+    address gasRelayer = vm.addr(32000);
 
     // region Setup
     function setUp() public {
@@ -77,8 +82,20 @@ contract GiftedBoxTest is Test, TestEvents {
 
         giftedBox.setAccountImpl(payable(address(giftedAccount)));
         giftedBox.setRegistry(address(registry));
-        giftedBox.setGasSponsorBook(address(0));
         giftedBox.setAccountGuardian(address(guardian));
+        giftedBox.grantRole(giftedBox.CLAIMER_ROLE(), gasRelayer);
+
+        vault = new Vault();
+        vault.initialize(address(this));
+        sponsorBook = new GasSponsorBook();
+        vault.grantRole(vault.CONTRACT_ROLE(), address(sponsorBook));
+
+        sponsorBook.setVault(vault);
+        giftedBox.setGasSponsorBook(address(sponsorBook));
+        sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
+        sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
+
+        vm.deal(gasRelayer, 100 ether);
     }
 
     // endregion
@@ -475,5 +492,159 @@ contract GiftedBoxTest is Test, TestEvents {
         assertEq(mockERC1155.balanceOf(tokenRecipient, tokenId), amount);
     }
 
-    // endregion Forward Methods
+// region Gas Sponsor
+    function testGasSponsorBookWithConsumer() public {
+        uint256 tokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
+        uint256 feePerTicket = giftedBox.feePerSponsorTicket();
+        vm.deal(giftOperator, feePerTicket * 2);
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: feePerTicket * 2}(giftSender, giftRecipient);
+
+        uint256 beforeBalance = gasRelayer.balance;
+        vm.prank(gasRelayer);
+        giftedBox.claimGiftByClaimerConsumeSponsorTicket(
+            tokenId,
+            GiftingRole.SENDER
+        );
+        vm.assertEq(gasRelayer.balance, beforeBalance + feePerTicket);
+    }
+
+    function testTransferERC721Sponsor() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 tokenId = 100;
+        uint256 feePerTicket = giftedBox.feePerSponsorTicket();
+        vm.deal(giftOperator, feePerTicket);
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: feePerTicket}(giftSender, giftRecipient);
+
+        // Mint ERC721 token to giftSender
+        mockERC721.mint(giftOperator, tokenId);
+
+        // Transfer ERC721 token to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC721.safeTransferFrom(
+            giftOperator,
+            address(tokenAccount),
+            tokenId
+        );
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC721PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC721),
+            tokenId,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC721 token using sponsor
+        vm.prank(gasRelayer);
+        giftedBox.transferERC721Sponsor(
+            giftedBoxTokenId,
+            address(mockERC721),
+            tokenId,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC721.ownerOf(tokenId), tokenRecipient);
+    }
+
+    function testTransferERC1155Sponsor() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 tokenId = 100;
+        uint256 amount = 10;
+        uint256 feePerTicket = giftedBox.feePerSponsorTicket();
+        vm.deal(giftOperator, feePerTicket);
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: feePerTicket}(giftSender, giftRecipient);
+
+        // Mint ERC1155 token to giftSender
+        mockERC1155.mint(giftOperator, tokenId, amount);
+
+        // Transfer ERC1155 token to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC1155.safeTransferFrom(
+            giftOperator,
+            address(tokenAccount),
+            tokenId,
+            amount,
+            ""
+        );
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC1155PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC1155),
+            tokenId,
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC1155 token using sponsor
+        vm.prank(gasRelayer);
+        giftedBox.transferERC1155Sponsor(
+            giftedBoxTokenId,
+            address(mockERC1155),
+            tokenId,
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC1155.balanceOf(tokenRecipient, tokenId), amount);
+    }
+
+    // endregion Gas Sponsor
 }

@@ -59,15 +59,16 @@ contract GiftedBox is
     event RegistryUpdated(address indexed newRegistry);
     event GuardianUpdated(address indexed newGuardian);
     event GasSponsorBookUpdated(address indexed newGasSponsorBook);
-    event TransferEtherToAccount(
+    event RefundToTokenBoundedAccount(
         address indexed account,
         address indexed from,
         uint256 value
     );
-    event SponsorEnabled(
+    event GasSponsorEnabled(
         address indexed account,
         uint256 tokenId,
-        uint256 ticket
+        uint256 ticketId,
+        uint256 ticketCount
     );
     event SponsorTicketAdded(
         address indexed account,
@@ -146,7 +147,7 @@ contract GiftedBox is
 
     // endregion
 
-    // region config
+    // region config setter
     function setAccountImpl(
         address payable newAccountImpl
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -230,23 +231,31 @@ contract GiftedBox is
         address tokenAccount,
         uint256 tokenId
     ) internal {
-        if (
-            address(gasSponsorBook) != address(0) &&
-            msg.value >= gasSponsorBook.feePerSponsorTicket()
-        ) {
-            uint256 sponserFee = gasSponsorBook.feePerSponsorTicket();
+        uint256 sponserFee = gasSponsorBook.feePerSponsorTicket();
+        uint256 numberOfTickets = msg.value / sponserFee;
+        if (numberOfTickets > 0) {
             uint256 ticket = generateTicketID(address(tokenAccount));
-            gasSponsorBook.addSponsorTicket{value: sponserFee}(ticket);
-            uint256 left = msg.value - sponserFee;
+            uint256 transferFee = sponserFee * numberOfTickets;
+            gasSponsorBook.addSponsorTicket{value: transferFee}(ticket);
+            uint256 left = msg.value - transferFee;
             if (left > 0) {
                 payable(tokenAccount).sendValue(left);
-                emit TransferEtherToAccount(tokenAccount, msg.sender, left);
+                emit RefundToTokenBoundedAccount(
+                    tokenAccount,
+                    msg.sender,
+                    left
+                );
             }
-            emit SponsorEnabled(tokenAccount, tokenId, ticket);
+            emit GasSponsorEnabled(
+                tokenAccount,
+                tokenId,
+                ticket,
+                numberOfTickets
+            );
         } else if (msg.value > 0) {
             uint256 value = msg.value;
-            emit TransferEtherToAccount(tokenAccount, msg.sender, value);
             payable(tokenAccount).sendValue(value);
+            emit RefundToTokenBoundedAccount(tokenAccount, msg.sender, value);
         }
     }
 
@@ -271,9 +280,9 @@ contract GiftedBox is
      * @param tokenId The ID of the NFT token.
      * @return A boolean indicating whether the NFT token has a sponsor ticket or not.
      */
-    function hasSponsorTicket(uint256 tokenId) public view returns (bool) {
+    function sponsorTickets(uint256 tokenId) public view returns (uint256) {
         if (address(gasSponsorBook) == address(0)) {
-            return false;
+            return 0;
         }
         address tokenAccount = registry.account(
             address(accountImpl),
@@ -283,7 +292,11 @@ contract GiftedBox is
             0
         );
         uint256 ticket = generateTicketID(tokenAccount);
-        return gasSponsorBook.sponsorTickets(ticket) > 0;
+        return gasSponsorBook.sponsorTickets(ticket);
+    }
+
+    function feePerSponsorTicket() public view returns (uint256) {
+        return gasSponsorBook.feePerSponsorTicket();
     }
 
     // endregion
@@ -303,8 +316,8 @@ contract GiftedBox is
         require(sender != recipient, "!sender-recipient-same");
 
         uint256 tokenId = _nextTokenId++;
-        _safeMint(recipient, tokenId);
-        _update(address(this), tokenId, recipient);
+        _safeMint(sender, tokenId);
+        _update(address(this), tokenId, address(0));
 
         giftingRecords[tokenId] = GiftingRecord({
             operator: msg.sender,
@@ -327,19 +340,23 @@ contract GiftedBox is
 
     function claimGift(uint256 tokenId, GiftingRole role) public whenNotPaused {
         GiftingRecord memory record = giftingRecords[tokenId];
-        if (role == GiftingRole.SENDER)  {
+        if (role == GiftingRole.SENDER) {
             require(record.sender == msg.sender, "!not-sender");
-        }
-        else if (role == GiftingRole.RECIPIENT) {
+        } else if (role == GiftingRole.RECIPIENT) {
             require(record.recipient == msg.sender, "!not-recipient");
-        }
-        else {
+        } else {
             revert("!invalid-role");
         }
 
         delete giftingRecords[tokenId];
         _update(msg.sender, tokenId, address(0));
-        emit GiftedBoxClaimed(tokenId, role, record.sender, record.recipient, record.operator);
+        emit GiftedBoxClaimed(
+            tokenId,
+            role,
+            record.sender,
+            record.recipient,
+            record.operator
+        );
     }
 
     function claimGiftByClaimer(
@@ -347,25 +364,40 @@ contract GiftedBox is
         GiftingRole role
     ) public onlyRole(CLAIMER_ROLE) {
         GiftingRecord memory record = giftingRecords[tokenId];
-        if (role == GiftingRole.SENDER)  {
+        if (role == GiftingRole.SENDER) {
             require(record.sender != address(0), "!invalid-sender");
             _update(record.sender, tokenId, address(0));
-        }
-        else if (role == GiftingRole.RECIPIENT) {
-            require(record.recipient!= address(0), "!invalid-recipient");
+        } else if (role == GiftingRole.RECIPIENT) {
+            require(record.recipient != address(0), "!invalid-recipient");
             _update(record.recipient, tokenId, address(0));
-        }
-        else {
+        } else {
             revert("!invalid-role");
         }
 
         delete giftingRecords[tokenId];
-        emit GiftedBoxClaimedByAdmin(tokenId, role, record.sender, record.recipient, record.operator);
+        emit GiftedBoxClaimedByAdmin(
+            tokenId,
+            role,
+            record.sender,
+            record.recipient,
+            record.operator
+        );
+    }
+
+    function claimGiftByClaimerConsumeSponsorTicket(
+        uint256 tokenId,
+        GiftingRole role
+    ) public onlyRole(CLAIMER_ROLE) {
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(sponsorTickets(tokenId) > 0, "!sponsor-ticket-not-enough");
+        address tokenAccount = tokenAccountAddress(tokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        claimGiftByClaimer(tokenId, role);
     }
 
     // endregion Gifting Actions
 
-    
     // region Forward Methods
     function transferERC721PermitMessage(
         uint256 giftedBoxTokenId,
@@ -374,12 +406,16 @@ contract GiftedBox is
         address to,
         uint256 deadline
     ) external view returns (string memory) {
-        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
-        return account.getTransferERC721PermitMessage(
-            tokenContract,
-            tokenId,
-            to,
-            deadline);
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+        return
+            account.getTransferERC721PermitMessage(
+                tokenContract,
+                tokenId,
+                to,
+                deadline
+            );
     }
 
     function transferERC721(
@@ -392,9 +428,32 @@ contract GiftedBox is
         bytes32 r,
         bytes32 s
     ) external {
-        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
 
-        account.transferERC721(
+        account.transferERC721(tokenContract, tokenId, to, deadline, v, r, s);
+    }
+
+    function transferERC721Sponsor(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(tokenAccount).transferERC721(
             tokenContract,
             tokenId,
             to,
@@ -413,14 +472,17 @@ contract GiftedBox is
         address to,
         uint256 deadline
     ) external view returns (string memory) {
-        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
-        return account.getTransferERC1155PermitMessage(
-            tokenContract,
-            tokenId,
-            amount,
-            to,
-            deadline
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
         );
+        return
+            account.getTransferERC1155PermitMessage(
+                tokenContract,
+                tokenId,
+                amount,
+                to,
+                deadline
+            );
     }
 
     function transferERC1155(
@@ -434,7 +496,9 @@ contract GiftedBox is
         bytes32 r,
         bytes32 s
     ) external {
-        IGiftedAccount account = IGiftedAccount(tokenAccountAddress(giftedBoxTokenId));
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
 
         account.transferERC1155(
             tokenContract,
@@ -447,7 +511,37 @@ contract GiftedBox is
             s
         );
     }
+
+    function transferERC1155Sponsor(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(tokenAccount).transferERC1155(
+            tokenContract,
+            tokenId,
+            amount,
+            to,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+
     // endregion Forward Methods
 }
-
-    

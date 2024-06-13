@@ -5,7 +5,8 @@ struct GiftingRecord {
     address sender;
     // recipient of the gift
     address recipient;
-    // external wallet address
+    // external wallet address, operator is used in GiftedAccount's isAuthorizedSender check
+    // to limit the sender of the ERC721 or ERC1155 token
     address operator;
 }
 
@@ -59,6 +60,29 @@ interface IGiftedBox {
     ) external view returns (string memory);
 
     function transferERC1155(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function transferERC721Sponsor(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function transferERC1155Sponsor(
         uint256 giftedBoxTokenId,
         address tokenContract,
         uint256 tokenId,
