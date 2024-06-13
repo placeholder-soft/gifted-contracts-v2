@@ -50,6 +50,17 @@ interface IGiftedBox {
         bytes32 s
     ) external;
 
+    function transferERC721Sponsor(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
     function transferERC1155PermitMessage(
         uint256 giftedBoxTokenId,
         address tokenContract,
@@ -64,17 +75,6 @@ interface IGiftedBox {
         address tokenContract,
         uint256 tokenId,
         uint256 amount,
-        address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
-    function transferERC721Sponsor(
-        uint256 giftedBoxTokenId,
-        address tokenContract,
-        uint256 tokenId,
         address to,
         uint256 deadline,
         uint8 v,

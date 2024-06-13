@@ -492,7 +492,7 @@ contract GiftedBoxTest is Test, TestEvents {
         assertEq(mockERC1155.balanceOf(tokenRecipient, tokenId), amount);
     }
 
-// region Gas Sponsor
+    // region Gas Sponsor
     function testGasSponsorBookWithConsumer() public {
         uint256 tokenId = 0;
         address giftSender = vm.addr(1);

@@ -1,66 +1,38 @@
-## Foundry
+# Gifted.art Contracts v2
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## env explanation
 
-Foundry consists of:
+```
+# env switching is using forge wallet to deploy contracts
+use [dev|local|prod]
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+# create key file
+cast wallet i dev --private-key 0x000 --keystore-dir keystores/keys
 ```
 
-### Test
+`ETH_KEYSTORE` and `ETH_PASSWORD` is set by each `env/.env.[dev|local|prod]` to pick up correct key file and password file.
 
-```shell
-$ forge test
+## Deploy
+
+### sepolia
+
+specify `--chain` to pickup etherscan key setting in `foundry.toml`
+
+```
+forge script --chain sepolia script/deploy.sepolia.s.sol -vvvv --rpc-url $SEPOLIA_RPC_URL --broadcast --verify
 ```
 
-### Format
+## Addresses
 
-```shell
-$ forge fmt
-```
+### [Sepolia](https://sepolia.etherscan.io/)
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| GiftedAccountGuardian             | 0x88b4388b261B31F858A5AC5B707c4F857A9792E4 |
+| GiftedAccount(IMPL)               | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
+| GiftedAccount(GiftedAccountProxy) | 0x2493fFeE55B3262616461E9E72C354073dAeCDED |
+| GiftedBox(IMPL)                   | 0xf28a59cB5576D404D74E779CB9CDe233cf5871B7 |
+| GiftedBox                         | 0x5bf1AD25950bED502F56f61c2Fd4369c59D919A0 |
+| ERC6551Registry                   | 0x20A63B1532649FE80c9Df43fb827c155447fD75E |
+| Vault                             | 0xA00D0F5074e7565D5a71893396e19D19aa1f4629 |
+| GasSponsorBook                    | 0x11d0E669D24F682F7690fDf5407B20287050a74A |
