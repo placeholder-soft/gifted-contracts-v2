@@ -26,6 +26,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0xA436364dAFb5388f4756Cd334E41948a3F8BfF1d |
 | GiftedAccountGuardian             | 0x88b4388b261B31F858A5AC5B707c4F857A9792E4 |
 | GiftedAccount(IMPL)               | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
 | GiftedAccount(GiftedAccountProxy) | 0x2493fFeE55B3262616461E9E72C354073dAeCDED |
@@ -39,6 +40,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0x49BB830d9FD2E877Be6b4C5564bBf245F2179fD9 |
 | GiftedAccountGuardian             | 0x06218F2deD0AA802001D8C93765a37Fc054eb62E |
 | GiftedAccount(IMPL)               | 0x20cb3200762ddDE5c502065dF805538D707DA76c |
 | GiftedAccount(GiftedAccountProxy) | 0xaC81a402efE13A12Da7421cff57c639054222126 |
@@ -52,6 +54,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0xd62Df558426c7A37DCdA006B83362B610423484b |
 | GiftedAccountGuardian             | 0x7C9612ed0716CC48474AcB908B4766239709d6A0 |
 | GiftedAccount(IMPL)               | 0x709c1743aaDa8657eb1928955D48684AbC1337FA |
 | GiftedAccount(GiftedAccountProxy) | 0xB765c1801dB3712d0330b83585496D27Fac01420 |

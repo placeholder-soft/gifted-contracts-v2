@@ -23,13 +23,60 @@ contract DeploySepolia is Script {
     GiftedAccount internal giftedAccount;
     Vault public vault;
     GasSponsorBook public sponsorBook;
+    UnifiedStore public unifiedStore;
+
     address public gasRelayer =
         address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
     address public deployer =
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
     function run() public {
-        deploy_contracts();
+        deploy_UnifiedStore();
+    }
+
+    function deploy_UnifiedStore() internal {
+        vm.startBroadcast(deployer);
+        unifiedStore = new UnifiedStore();
+
+        string[] memory keys = new string[](5);
+        address[] memory addresses = new address[](5);
+        keys[0] = "GiftedAccountGuardian";
+        addresses[0] = address(0x7C9612ed0716CC48474AcB908B4766239709d6A0);
+
+        keys[1] = "GiftedAccount";
+        addresses[1] = address(0xB765c1801dB3712d0330b83585496D27Fac01420);
+
+        keys[2] = "GiftedBox";
+        addresses[2] = address(0x890f8F066b6C6946D220623d6cb36b2930B80c44);
+
+        keys[3] = "Vault";
+        addresses[3] = address(0xF9aE127989ec2C8d683a0605a6dEc973f4B57d9b);
+
+        keys[4] = "GasSponsorBook";
+        addresses[4] = address(0x75260D56366fBa5933CB56efd5F671331fF9B6C5);
+
+
+        for (uint i = 0; i < addresses.length; i++) {
+            uint32 size;
+            address addr = addresses[i];
+            assembly {
+                size := extcodesize(addr)
+            }
+            require(
+                size > 0,
+                string(
+                    abi.encodePacked(
+                        "Address ",
+                        keys[i],
+                        " does not contain code"
+                    )
+                )
+            );
+        }
+
+        unifiedStore.setAddresses(keys, addresses);
+
+        vm.stopBroadcast();
     }
 
     function deploy_artwork() internal {
