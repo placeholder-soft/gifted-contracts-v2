@@ -31,7 +31,14 @@ contract DeploySepolia is Script {
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
     function run() public {
-        deploy_UnifiedStore();
+        set_registery_config();
+    }
+
+    function set_registery_config() internal {
+        vm.startBroadcast(deployer);
+        UnifiedStore store = UnifiedStore(0xd62Df558426c7A37DCdA006B83362B610423484b);
+        store.setAddress("ERC6551Registry", 0xF0401c57Ff0Cb78Af5340dA8ABf79f7B1D9b4A50);
+        vm.stopBroadcast();
     }
 
     function deploy_UnifiedStore() internal {
