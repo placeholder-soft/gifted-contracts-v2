@@ -80,7 +80,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | GiftedBox                         | 0xeaAE38B765c5509132c9B3c4a757bBd857fe3536 |
 | Vault                             | 0xe6121F29A58f235c1c12837fACE0f9419411F402 |
 | GasSponsorBook                    | 0x01b793FDf3d21d8C9cD52De3aD5B50c5c95009A3 |
-| UnifiedStore                      | 0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6 |
+| UnifiedStore                      | 0x09748F6411a4D1A84a87645A3E406dCb3c31Fc73 |
 
 ### [Arbitrum Sepolia - Staging](https://sepolia.arbiscan.io/)
 
@@ -113,3 +113,5 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0x95c566AB7A776314424364D1e2476399167b916c |
 | GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
 | UnifiedStore                      | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
+
+
