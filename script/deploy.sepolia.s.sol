@@ -31,36 +31,50 @@ contract DeploySepolia is Script {
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
     function run() public {
-        set_registery_config();
+        deploy_UnifiedStore();
     }
 
-    function set_registery_config() internal {
-        vm.startBroadcast(deployer);
-        UnifiedStore store = UnifiedStore(0xd62Df558426c7A37DCdA006B83362B610423484b);
-        store.setAddress("ERC6551Registry", 0xF0401c57Ff0Cb78Af5340dA8ABf79f7B1D9b4A50);
-        vm.stopBroadcast();
-    }
 
     function deploy_UnifiedStore() internal {
         vm.startBroadcast(deployer);
         unifiedStore = new UnifiedStore();
+        /*
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| MockERC721                        | 0x44d0600DA8f30716001cb2233d39B01a346Cc6Ea |
+| MockERC1155                       | 0xBA10494cF2d2293774603bfD882c30A12E5c0511 |
+| GiftedAccountGuardian             | 0x40Dba44E7d95affF4BC8afa349393f26c8f61da6 |
+| GiftedAccount(IMPL)               | 0xE9E578157dD683B0A2C0De91A1DBCcb792F8E82E |
+| GiftedAccount(GiftedAccountProxy) | 0xeDc1452817e8bDAe482D6D026c07C77f2053b693 |
+| ERC6551Registry                   | 0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E |
+| GiftedBox(IMPL)                   | 0xC3fe2527373f42cB089CCB4Bb3a3B20ad6dBD6a7 |
+| GiftedBox                         | 0x384C26db13269BB3215482F9B932371e4803B29f |
+| Vault                             | 0x95c566AB7A776314424364D1e2476399167b916c |
+| GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
+*/
 
-        string[] memory keys = new string[](5);
-        address[] memory addresses = new address[](5);
+        string[] memory keys = new string[](6);
+        address[] memory addresses = new address[](6);
         keys[0] = "GiftedAccountGuardian";
-        addresses[0] = address(0x7C9612ed0716CC48474AcB908B4766239709d6A0);
+        addresses[0] = address(0x40Dba44E7d95affF4BC8afa349393f26c8f61da6);
 
         keys[1] = "GiftedAccount";
-        addresses[1] = address(0xB765c1801dB3712d0330b83585496D27Fac01420);
+        addresses[1] = address(0xeDc1452817e8bDAe482D6D026c07C77f2053b693);
 
         keys[2] = "GiftedBox";
-        addresses[2] = address(0x890f8F066b6C6946D220623d6cb36b2930B80c44);
+        addresses[2] = address(0x384C26db13269BB3215482F9B932371e4803B29f);
 
         keys[3] = "Vault";
-        addresses[3] = address(0xF9aE127989ec2C8d683a0605a6dEc973f4B57d9b);
+        addresses[3] = address(0x95c566AB7A776314424364D1e2476399167b916c);
 
         keys[4] = "GasSponsorBook";
-        addresses[4] = address(0x75260D56366fBa5933CB56efd5F671331fF9B6C5);
+        addresses[4] = address(0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A);
+
+        keys[5] = "ERC6551Registry";
+        addresses[5] = address(0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E);
+
+
+
 
 
         for (uint i = 0; i < addresses.length; i++) {

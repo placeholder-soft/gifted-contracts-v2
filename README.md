@@ -20,9 +20,9 @@ cast wallet i dev --private-key 0x000 --keystore-dir keystores/keys
 forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --verify
 ```
 
-## Addresses
+## Addresses - Dev
 
-### [Sepolia](https://sepolia.etherscan.io/)
+### [Sepolia - Dev](https://sepolia.etherscan.io/)
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
@@ -36,7 +36,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0xA00D0F5074e7565D5a71893396e19D19aa1f4629 |
 | GasSponsorBook                    | 0x11d0E669D24F682F7690fDf5407B20287050a74A |
 
-### [Base Sepolia](https://sepolia.basescan.org/)
+### [Base Sepolia - Dev](https://sepolia.basescan.org/)
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
@@ -50,7 +50,7 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0x91E5503C2924F0536353343f455628A18CceDC16 |
 | GasSponsorBook                    | 0x5C9d46832e29b1ec5972f144773Ef13afc93eA76 |
 
-### [Arbitrum Sepolia](https://sepolia.arbiscan.io/)
+### [Arbitrum Sepolia - Dev](https://sepolia.arbiscan.io/)
 
 | ContractName                      | Address                                    |
 | --------------------------------- | ------------------------------------------ |
@@ -63,3 +63,53 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | GiftedBox                         | 0x890f8F066b6C6946D220623d6cb36b2930B80c44 |
 | Vault                             | 0xF9aE127989ec2C8d683a0605a6dEc973f4B57d9b |
 | GasSponsorBook                    | 0x75260D56366fBa5933CB56efd5F671331fF9B6C5 |
+
+## Address - Staging
+
+### [Sepolia - Staging](https://sepolia.etherscan.io/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| MockERC721                        | 0x9C8Ceb75b4657DAa931fb1b0D8EC9800155C5f7f |
+| MockERC1155                       | 0x60f33F5C9A0E02491aA7b5b35E0ffdeE073D1e6A |
+| GiftedAccountGuardian             | 0xfe4BCdbDC3fd3Db643c4acB2b9d4A4d34354f623 |
+| GiftedAccount(IMPL)               | 0xD685C8d9D48e65311Af1c2cAE6d40367b834a94E |
+| GiftedAccount(GiftedAccountProxy) | 0xB34927f8EF1C2E70aAE0b59477cBc9C52c3f959A |
+| ERC6551Registry                   | 0xcE59CEedFa2F96069F46e7cE1A0652C9268fB24a |
+| GiftedBox(IMPL)                   | 0x42575CA286C036A32B378ee80F186dFE4b8f63af |
+| GiftedBox                         | 0xeaAE38B765c5509132c9B3c4a757bBd857fe3536 |
+| Vault                             | 0xe6121F29A58f235c1c12837fACE0f9419411F402 |
+| GasSponsorBook                    | 0x01b793FDf3d21d8C9cD52De3aD5B50c5c95009A3 |
+| UnifiedStore                      | 0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6 |
+
+### [Arbitrum Sepolia - Staging](https://sepolia.arbiscan.io/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| MockERC721                        | 0x0CBaFa7D94f7b7DB447BBD45E23eC12e177F14e9 |
+| MockERC1155                       | 0x6b5AB9FfC094EC74121424Ca3d9bE848cC8d4Eb0 |
+| GiftedAccountGuardian             | 0xB4Bb45Fe7595105fdB425A9e024CfDEADF321EF6 |
+| GiftedAccount(IMPL)               | 0x01342877506d721765E918dc25DfC7201AF02001 |
+| GiftedAccount(GiftedAccountProxy) | 0xFD52a038021976e84564C78EB5d2b0B8a4509333 |
+| GiftedBox(IMPL)                   | 0x23Fd4D02E3e0b3cDFb2e851aE42Fd8bebE2EB7E9 |
+| GiftedBox                         | 0x8f0ad7Db5be7ad0ab5A4F9BC08Fc8FBAa4952773 |
+| Vault                             | 0xEdc199d7a4de25511C44aA85f6E5B794A21c1704 |
+| GasSponsorBook                    | 0xfaA1e72f8609A86F7cEbbaDa0719FaC617D67e18 |
+| ERC6551Registry                   | 0xF54930B90b5844fD976eE6EFE1cc3640c0742863 |
+| UnifiedStore                      | 0x9Ce09649451616733844b77a5d67FF2E467d2A14 |
+
+### [Base Sepolia - Staging](https://sepolia.basescan.org)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| MockERC721                        | 0x44d0600DA8f30716001cb2233d39B01a346Cc6Ea |
+| MockERC1155                       | 0xBA10494cF2d2293774603bfD882c30A12E5c0511 |
+| GiftedAccountGuardian             | 0x40Dba44E7d95affF4BC8afa349393f26c8f61da6 |
+| GiftedAccount(IMPL)               | 0xE9E578157dD683B0A2C0De91A1DBCcb792F8E82E |
+| GiftedAccount(GiftedAccountProxy) | 0xeDc1452817e8bDAe482D6D026c07C77f2053b693 |
+| ERC6551Registry                   | 0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E |
+| GiftedBox(IMPL)                   | 0xC3fe2527373f42cB089CCB4Bb3a3B20ad6dBD6a7 |
+| GiftedBox                         | 0x384C26db13269BB3215482F9B932371e4803B29f |
+| Vault                             | 0x95c566AB7A776314424364D1e2476399167b916c |
+| GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
+| UnifiedStore                      | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
