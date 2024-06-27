@@ -127,3 +127,15 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0xA473098eD8d7f94A18E0B7A0d0C15b6750b4dbDe |
 | GasSponsorBook                    | 0xbec73A3ed80216efbc5203DC014F183F582E97c0 |
 | ERC6551Registry                   | 0x44E106e4860DFA345D4D45997124019696fDA44f |
+
+### [Arbitrum](https://arbiscan.io)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0x6A9AB4532a1AD2441238125A966033e4Aa859b0A |
+| GiftedAccountGuardian             | 0xd2de85036007c33ff38976e521a33CCD3F207fb7 |
+| GiftedAccount(GiftedAccountProxy) | 0xA320659b35DAaD71910c39C0fcB5D2D3f76E90F9 |
+| GiftedBox(ERC1967Proxy)           | 0xbEE09DA671f7cD0B66d948eDda94Ef367697CC55 |
+| Vault                             | 0x3474a7Ca5eC6eE70f6DAF58aEf5FD5F528c9438e |
+| GasSponsorBook                    | 0x36F7edeBdb8E926649aE88E2Be4a204b7e8a172b |
+| ERC6551Registry                   | 0x3d1d6fAC357FaF74dd4FF46bb8A4C6abf7f362Ea |
