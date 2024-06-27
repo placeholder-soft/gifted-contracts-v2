@@ -114,4 +114,16 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
 | UnifiedStore                      | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
 
+## Address - Prod
 
+### [Base](https://basescan.org)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0xc45f19217e064EcE272e55EE7aAD36cc91e7ADA3 |
+| GiftedAccountGuardian             | 0x1fee122930BB09D400FeF0f0Fb9d1BDBbce14268 |
+| GiftedAccount(GiftedAccountProxy) | 0x07Ed52c878BaBDC959DcbADa1731925fE0b55Af6 |
+| GiftedBox(ERC1967Proxy)           | 0xe52a9CeCdCE5e66e283D355491c12166c3aD6d7d |
+| Vault                             | 0xA473098eD8d7f94A18E0B7A0d0C15b6750b4dbDe |
+| GasSponsorBook                    | 0xbec73A3ed80216efbc5203DC014F183F582E97c0 |
+| ERC6551Registry                   | 0x44E106e4860DFA345D4D45997124019696fDA44f |
