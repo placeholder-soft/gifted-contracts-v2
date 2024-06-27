@@ -12,7 +12,7 @@ contract GasSponsorBook is AccessControl, IGasSponsorBook {
     /// storage layout
     IVault public _vault;
     mapping(uint256 => uint256) public _sponsorTickets;
-    uint256 public _feePerSponsorTicket = 0.01 ether;
+    uint256 public _feePerSponsorTicket = 0.0001 ether;
 
     /// events
     event SponsorUpdate(address indexed sponsor, bool isSponsor);
