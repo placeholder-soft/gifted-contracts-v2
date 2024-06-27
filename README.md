@@ -139,3 +139,15 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0x3474a7Ca5eC6eE70f6DAF58aEf5FD5F528c9438e |
 | GasSponsorBook                    | 0x36F7edeBdb8E926649aE88E2Be4a204b7e8a172b |
 | ERC6551Registry                   | 0x3d1d6fAC357FaF74dd4FF46bb8A4C6abf7f362Ea |
+
+### [Ethereum](https://etherscan.io)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| UnifiedStore                      | 0xb1B46db99b18F00c15605Bb2BA15da26E7Db22bB |
+| GiftedAccountGuardian             | 0x5Fa3E1e212622bE1236fF7FfE75a0377E5E46608 |
+| GiftedAccount(GiftedAccountProxy) | 0x4E05321775716F6A7781D4E358da03A998dcd87c |
+| GiftedBox(ERC1967Proxy)           | 0x6A9EAAE37a99784faF276934DE9371544030F329 |
+| Vault                             | 0xF74d7124909f634B38799d871fD9f633b223b2C6 |
+| GasSponsorBook                    | 0x6eb220A1c1d1cC65cd0568eCA810b5022d0D6f4e |
+| ERC6551Registry                   | 0x40976bDCE57e5017E6a84909b06aBec0Ebd9F9fd |
