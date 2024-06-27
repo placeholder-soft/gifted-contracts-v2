@@ -31,27 +31,24 @@ contract DeploySepolia is Script {
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
     function run() public {
-        deploy_UnifiedStore();
+        set_sponsor_ticket();
     }
 
+    function set_sponsor_ticket() internal {
+        vm.startBroadcast(deployer);
+
+        sponsorBook = GasSponsorBook(
+            address(0x11d0E669D24F682F7690fDf5407B20287050a74A)
+        );
+
+        sponsorBook.setFeePerSponsorTicket(0.000001 ether);
+
+        vm.stopBroadcast();
+    }
 
     function deploy_UnifiedStore() internal {
         vm.startBroadcast(deployer);
         unifiedStore = new UnifiedStore();
-        /*
-| ContractName                      | Address                                    |
-| --------------------------------- | ------------------------------------------ |
-| MockERC721                        | 0x44d0600DA8f30716001cb2233d39B01a346Cc6Ea |
-| MockERC1155                       | 0xBA10494cF2d2293774603bfD882c30A12E5c0511 |
-| GiftedAccountGuardian             | 0x40Dba44E7d95affF4BC8afa349393f26c8f61da6 |
-| GiftedAccount(IMPL)               | 0xE9E578157dD683B0A2C0De91A1DBCcb792F8E82E |
-| GiftedAccount(GiftedAccountProxy) | 0xeDc1452817e8bDAe482D6D026c07C77f2053b693 |
-| ERC6551Registry                   | 0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E |
-| GiftedBox(IMPL)                   | 0xC3fe2527373f42cB089CCB4Bb3a3B20ad6dBD6a7 |
-| GiftedBox                         | 0x384C26db13269BB3215482F9B932371e4803B29f |
-| Vault                             | 0x95c566AB7A776314424364D1e2476399167b916c |
-| GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
-*/
 
         string[] memory keys = new string[](6);
         address[] memory addresses = new address[](6);
@@ -72,10 +69,6 @@ contract DeploySepolia is Script {
 
         keys[5] = "ERC6551Registry";
         addresses[5] = address(0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E);
-
-
-
-
 
         for (uint i = 0; i < addresses.length; i++) {
             uint32 size;
