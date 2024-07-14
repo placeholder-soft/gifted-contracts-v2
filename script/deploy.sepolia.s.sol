@@ -31,7 +31,14 @@ contract DeploySepolia is Script {
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
     function run() public {
-        set_sponsor_ticket();
+        deploy_contracts();
+        deploy_artwork();
+    }
+
+    function deploy_test() internal {
+        vm.startBroadcast(deployer);
+        unifiedStore = new UnifiedStore();
+        vm.stopBroadcast(); 
     }
 
     function set_sponsor_ticket() internal {
@@ -135,6 +142,32 @@ contract DeploySepolia is Script {
         giftedBox.setGasSponsorBook(address(sponsorBook));
         sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
         sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
+
+
+        unifiedStore = new UnifiedStore();
+
+        string[] memory keys = new string[](6);
+        address[] memory addresses = new address[](6);
+        keys[0] = "GiftedAccountGuardian";
+        addresses[0] = address(guardian);
+
+        keys[1] = "GiftedAccount";
+        addresses[1] = address(giftedAccount);
+
+        keys[2] = "GiftedBox";
+        addresses[2] = address(giftedBox);
+
+        keys[3] = "Vault";
+        addresses[3] = address(vault);
+
+        keys[4] = "GasSponsorBook";
+        addresses[4] = address(sponsorBook);
+
+        keys[5] = "ERC6551Registry";
+        addresses[5] = address(registry);
+
+        unifiedStore.setAddresses(keys, addresses);
+
         vm.stopBroadcast();
     }
 }

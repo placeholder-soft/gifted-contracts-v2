@@ -20,6 +20,14 @@ cast wallet i dev --private-key 0x000 --keystore-dir keystores/keys
 forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --verify
 ```
 
+### Zora
+
+zora is using routescan for contract verification. official blockscout using instruction [here](https://docs.zora.co/zora-network/contracts) does not work yet.
+
+```
+forge script script/deploy.sepolia.s.sol -vvvv --rpc-url zora_sepolia --broadcast --verify --slow
+```
+
 ## Addresses - Dev
 
 ### [Sepolia - Dev](https://sepolia.etherscan.io/)
@@ -63,6 +71,23 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | GiftedBox                         | 0x890f8F066b6C6946D220623d6cb36b2930B80c44 |
 | Vault                             | 0xF9aE127989ec2C8d683a0605a6dEc973f4B57d9b |
 | GasSponsorBook                    | 0x75260D56366fBa5933CB56efd5F671331fF9B6C5 |
+
+### [Zora Sepolia - Dev](https://999999999.testnet.routescan.io/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| GiftedAccountGuardian             | 0xaa4A0c44d58ACf831D99C1C5e8d407F98C548e6e |
+| GiftedAccount(IMPL)               | 0x19EdAB3b08151a061Ecf3865Cb60d5266Cc6472f |
+| GiftedAccount(GiftedAccountProxy) | 0x8F8cBd26bCAFbC78456961093c37f83bD9da960E |
+| ERC6551Registry                   | 0x95013a339594a96b93cD02f22658fa512BDE43bD |
+| GiftedBox(IMPL)                   | 0x6313943aba3666F3f39b78eD9f6943D697bE0901 |
+| GiftedBox                         | 0x942a986ACC1f72F70e2208dc1aF8444E4863b7C0 |
+| Vault                             | 0xf3D392E3A16e8bdCE0195b4C18F3FAeDFc7adE1a |
+| GasSponsorBook                    | 0x27720bF7cFc25390067b6A7469aF84F37FC8c589 |
+| UnifiedStore                      | 0xE781924639Fc91CA1a27076947a49dE447Dd95AF |
+| MockERC721                        | 0xA57E7bDc9721Fb9Faa9a40cb6c0c139c1F7FA256 |
+| MockERC1155                       | 0x1C5c6e32CBc5F608045a1781D6E9329E1B009257 |
+
 
 ## Address - Staging
 
@@ -113,6 +138,24 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url sepolia --broadcast --v
 | Vault                             | 0x95c566AB7A776314424364D1e2476399167b916c |
 | GasSponsorBook                    | 0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A |
 | UnifiedStore                      | 0x6ac2fe2DB1aDF6Be4fE129CFB1EE17511aBf097B |
+
+
+### [Zora Sepolia - Staging](https://999999999.testnet.routescan.io/)
+
+| ContractName                      | Address                                    |
+| --------------------------------- | ------------------------------------------ |
+| GiftedAccountGuardian             | 0xF7027703193eFc66DcAA18Cc34eb95e7a535c82D |
+| GiftedAccount(IMPL)               | 0xE5f66DE16cE5a1bBCE31574029dF7cF2a987221A |
+| GiftedAccount(GiftedAccountProxy) | 0x7488F264b2B6FEDa37B18af0080C4dBC12bC3F95 |
+| ERC6551Registry                   | 0xB0CddfF980D3589E22D4714e24dB40C8ee693a38 |
+| GiftedBox(IMPL)                   | 0xdC5e0000ea45bAeaDD5911627949568107626573 |
+| GiftedBox                         | 0x549dF4BabA9F7E887996fB6EA776D501E95FA99A |
+| Vault                             | 0x23162150013b06700a8b4523176e948E1D2E4ef5 |
+| GasSponsorBook                    | 0x496c4f369566b265DfbA3df9Ac6C6Aca96A13792 |
+| UnifiedStore                      | 0x10B3fEAF1012E82D8ad0beA45857fc35F72E165e |
+| MockERC721                        | 0x61a39Fac05841AaEB9D8148F75ada446C6534Bc0 |
+| MockERC1155                       | 0xA3eF3eA05eF4cD9858046E4b87015285d2f5359e |
+
 
 ## Address - Prod
 
