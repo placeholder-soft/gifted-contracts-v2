@@ -32,9 +32,18 @@ contract DeployMainnet is Script {
 
 
     function run() public {
-        deploy_contracts();
+        deploy_artwork();
     }
 
+    function deploy_artwork() internal {
+        vm.startBroadcast();
+        mockERC721 = new MockERC721();
+        mockERC721.setBaseURI("https://app.gifted.art/api/nfts/");
+
+        mockERC1155 = new MockERC1155();
+        mockERC1155.setURI("https://app.gifted.art/api/nfts/");
+        vm.stopBroadcast();
+    }
     function deploy_contracts() internal {
         vm.startBroadcast(deployer);
         guardian = new GiftedAccountGuardian();

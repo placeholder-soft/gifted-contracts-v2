@@ -206,3 +206,5 @@ forge script script/deploy.sepolia.s.sol -vvvv --rpc-url zora_sepolia --broadcas
 | Vault                             | 0xA473098eD8d7f94A18E0B7A0d0C15b6750b4dbDe |
 | GasSponsorBook                    | 0xbec73A3ed80216efbc5203DC014F183F582E97c0 |
 | ERC6551Registry                   | 0x44E106e4860DFA345D4D45997124019696fDA44f |
+| MockERC721                        | 0xbA44e28707c4b8CBE9c22Da381E8b89c5F320511 |
+| MockERC1155                       | 0x2543A97126fF0131D427134dC572c17bcF7087D8 |
