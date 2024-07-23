@@ -32,7 +32,17 @@ contract DeployMainnet is Script {
 
 
     function run() public {
-        deploy_artwork();
+        update_fee_ticket();
+    }
+
+    function update_fee_ticket() public {
+        vm.startBroadcast(deployer);
+
+        sponsorBook = GasSponsorBook(0x6eb220A1c1d1cC65cd0568eCA810b5022d0D6f4e);
+
+        sponsorBook.setFeePerSponsorTicket(0.0008 ether);
+
+        vm.stopBroadcast();
     }
 
     function deploy_artwork() internal {
