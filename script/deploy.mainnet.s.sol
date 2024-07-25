@@ -32,7 +32,7 @@ contract DeployMainnet is Script {
 
 
     function run() public {
-        add_fund_vault();
+        update_fee_ticket();
     }
 
     function add_fund_vault() public {
@@ -44,8 +44,8 @@ contract DeployMainnet is Script {
 
     function update_fee_ticket() public {
         vm.startBroadcast(deployer);
-        sponsorBook = GasSponsorBook(0x6eb220A1c1d1cC65cd0568eCA810b5022d0D6f4e);
-        sponsorBook.setFeePerSponsorTicket(0.0008 ether);
+        sponsorBook = GasSponsorBook(0xbec73A3ed80216efbc5203DC014F183F582E97c0);
+        sponsorBook.setFeePerSponsorTicket(0.0000006 ether);
         vm.stopBroadcast();
     }
 
