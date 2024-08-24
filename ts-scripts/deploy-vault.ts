@@ -15,11 +15,11 @@ const colors = [
 const resetColor = "\x1b[0m";
 
 const networks = [
-//   "base_sepolia",
-//   "sepolia",
-//   "arbitrum_sepolia",
+  //   "base_sepolia",
+  //   "sepolia",
+  //   "arbitrum_sepolia",
   // "zora_sepolia",
-  "base"
+  "base",
 ] as const;
 
 async function deploy() {
@@ -28,8 +28,8 @@ async function deploy() {
 
   for (const network of networks) {
     queue.add(async () => {
+      const colorIndex = networks.indexOf(network) % colors.length;
       try {
-        const colorIndex = networks.indexOf(network) % colors.length;
         console.log(
           `${colors[colorIndex]}Deploying NFTVault to ${network}...${resetColor}`
         );
