@@ -1,0 +1,9 @@
+{
+	"dependencies": {
+		"tsx": "^4.17.0",
+		"viem": "^2.20.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.5.0"
+	}
+}
