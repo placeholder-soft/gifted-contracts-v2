@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        /* Base Options: */
+        "skipLibCheck": true,
+        "target": "es2022",
+        "esModuleInterop": true,
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "moduleDetection": "force",
+        "isolatedModules": true,
+        /* Strictness */
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        /* If NOT transpiling with tsc: */
+        "module": "Preserve",
+        "noEmit": true,
+        "lib": [
+            "es2022"
+        ],
+        "types": [
+            "node"
+        ]
+    },
+    "include": [
+        "ts-scripts/**/*.ts"
+    ]
+}
