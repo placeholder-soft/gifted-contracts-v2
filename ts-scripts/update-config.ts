@@ -5,6 +5,17 @@ import path from "path";
 import assert from "assert";
 import { abiUnifiedStore } from "./abis";
 
+// Get all keys from the UnifiedStore contract
+const keys = [
+  "GiftedAccountGuardian",
+  "GiftedAccount",
+  "ERC6551Registry",
+  "GiftedBox",
+  "Vault",
+  "GasSponsorBook",
+  "NFTVault",
+];
+
 function getChainById(networkId: string): Chain | undefined {
   const chain = Object.values(chains).find((c) => c.id === parseInt(networkId));
 
@@ -64,16 +75,6 @@ async function updateConfig() {
     });
 
     try {
-      // Get all keys from the UnifiedStore contract
-      const keys = [
-        "GiftedAccountGuardian",
-        "GiftedAccount",
-        "ERC6551Registry",
-        "GiftedBox",
-        "Vault",
-        "GasSponsorBook",
-      ];
-
       // Fetch addresses for each key and update the configuration
       for (const key of keys) {
         const address = await publicClient.readContract({
