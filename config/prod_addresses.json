@@ -1,0 +1,22 @@
+{
+  "1": {
+    "UnifiedStore": "0xb1B46db99b18F00c15605Bb2BA15da26E7Db22bB",
+    "manager": "0xe335Cf211aA52f3a84257F61dde34C3BDFced560",
+    "deployer": "0xf53f105E90b3e9Ea928926A5A78E921D8168e213"
+  },
+  "8453": {
+    "UnifiedStore": "0xc45f19217e064EcE272e55EE7aAD36cc91e7ADA3",
+    "manager": "0xe335Cf211aA52f3a84257F61dde34C3BDFced560",
+    "deployer": "0xf53f105E90b3e9Ea928926A5A78E921D8168e213"
+  },
+  "42161": {
+    "UnifiedStore": "0x6A9AB4532a1AD2441238125A966033e4Aa859b0A",
+    "manager": "0xe335Cf211aA52f3a84257F61dde34C3BDFced560",
+    "deployer": "0xf53f105E90b3e9Ea928926A5A78E921D8168e213"
+  },
+  "7777777": {
+    "UnifiedStore": "0xc45f19217e064EcE272e55EE7aAD36cc91e7ADA3",
+    "manager": "0xe335Cf211aA52f3a84257F61dde34C3BDFced560",
+    "deployer": "0xf53f105E90b3e9Ea928926A5A78E921D8168e213"
+  }
+}
