@@ -16,6 +16,8 @@ const resetColor = "\x1b[0m";
 
 const networks = [
   "base_sepolia",
+  "sepolia",
+  "arbitrum_sepolia",
   // Add other networks as needed
 ] as const;
 
@@ -30,8 +32,8 @@ async function upgradeGiftedBox() {
         console.log(
           `${colors[colorIndex]}Upgrading GiftedBox on ${network}...${resetColor}`
         );
-        // const command = `forge script script/upgrade.gifted-box.s.sol --rpc-url ${network} -vvvv --broadcast --verify --slow`;
-        const command = `forge script script/upgrade.gifted-box.s.sol --rpc-url ${network} -vvvv`;
+        const command = `forge script script/upgrade.gifted-box.s.sol --rpc-url ${network} -vvvv --broadcast --verify --slow`;
+        // const command = `forge script script/upgrade.gifted-box.s.sol --rpc-url ${network} -vvvv`;
         const child = spawn(command, { shell: true });
 
         let output = "";
