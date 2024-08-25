@@ -43,7 +43,7 @@ contract NFTVaultTest is Test {
         vault.grantRole(vault.MANAGER_ROLE(), manager);
     }
 
-    function testConstructor() public {
+    function testConstructor() public view {
         assertTrue(vault.hasRole(vault.DEFAULT_ADMIN_ROLE(), admin));
         assertTrue(vault.hasRole(vault.MANAGER_ROLE(), admin));
     }

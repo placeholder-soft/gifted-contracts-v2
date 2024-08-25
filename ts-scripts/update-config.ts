@@ -14,6 +14,7 @@ const keys = [
   "Vault",
   "GasSponsorBook",
   "NFTVault",
+  "GiftedBoxImplementation",
 ];
 
 function getChainById(networkId: string): Chain | undefined {
