@@ -310,7 +310,8 @@ contract GiftedBox is
      */
     function sendGift(
         address sender,
-        address recipient
+        address recipient,
+        address operator
     ) public payable whenNotPaused {
         require(sender != address(0), "!sender-address-0");
         require(sender != recipient, "!sender-recipient-same");
@@ -320,7 +321,7 @@ contract GiftedBox is
         _update(address(this), tokenId, address(0));
 
         giftingRecords[tokenId] = GiftingRecord({
-            operator: msg.sender,
+            operator: operator,
             sender: sender,
             recipient: recipient
         });
@@ -335,7 +336,14 @@ contract GiftedBox is
         createAccountIfNeeded(tokenId, tokenAccount);
         handleSponsorshipAndTransfer(tokenAccount, tokenId);
 
-        emit GiftedBoxSentToVault(sender, recipient, msg.sender, tokenId);
+        emit GiftedBoxSentToVault(sender, recipient, operator, tokenId);
+    }
+
+    function sendGift(
+        address sender,
+        address recipient
+    ) public payable whenNotPaused {
+        sendGift(sender, recipient, msg.sender);
     }
 
     function claimGift(uint256 tokenId, GiftingRole role) public whenNotPaused {
