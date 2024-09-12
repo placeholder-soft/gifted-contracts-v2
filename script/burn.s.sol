@@ -11,47 +11,65 @@ contract Burn is Script {
     IERC721 public nftContract;
 
     function run() public {
-        burnNFT(148, 13);
-        burnNFT(149, 14);
-        burnNFT(165, 16);
-        // burnNFT(542, 47);
-        burnNFT(543, 48);
-        burnNFT(544, 49);
-        burnNFT(545, 50);
-        burnNFT(548, 77);
-        burnNFT(551, 96);
-        burnNFT(563, 99);
-        burnNFT(565, 101);
-        burnNFT(568, 102);
-        burnNFT(570, 104);
-        burnNFT(572, 105);
-        burnNFT(575, 107);
-        burnNFT(580, 109);
-        burnNFT(582, 110);
-        // burnNFT(587, 112);
-        burnNFT(590, 113);
-        burnNFT(594, 115);
-        burnNFT(596, 116);
-        burnNFT(598, 117);
-        burnNFT(601, 118);
-        // burnNFT(604, 119);
-        burnNFT(609, 121);
-        burnNFT(612, 122);
-        burnNFT(614, 123);
-        burnNFT(651, 127);
-        burnNFT(660, 129);
-        burnNFT(661, 130);
-        burnNFT(662, 131);
-        burnNFT(663, 132);
-        burnNFT(664, 133);
-        burnNFT(665, 134);
-        burnNFT(668, 137);
-        burnNFT(669, 138);
-        // burnNFT(670, 139);
-        burnNFT(671, 140);
-        burnNFT(673, 98);
-        // burnNFT(675, 142);
-        burnNFT(704, 157);
+        burnNFTs(
+            [
+                106,
+                91,
+                90,
+                89,
+                88,
+                87,
+                86,
+                85,
+                84,
+                83,
+                82,
+                80,
+                79,
+                78,
+                74,
+                73,
+                72,
+                71,
+                69,
+                68,
+                67,
+                66,
+                65,
+                64,
+                63,
+                62,
+                61,
+                60,
+                59,
+                58,
+                57,
+                55,
+                54,
+                53,
+                52,
+                51,
+                43,
+                40,
+                38,
+                36
+            ]
+        );
+    }
+
+    function burnNFTs(uint8[40] memory tokenIds) internal {
+        vm.startBroadcast(getAddressFromConfig("manager"));
+        nftContract = IERC721(0x2D37C6bfcb5CDD2cDb5c48C107B56a85B77d62e8);
+        address owner = getAddressFromConfig("manager");
+
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            nftContract.transferFrom(
+                address(owner),
+                address(0xdead),
+                uint256(tokenIds[i])
+            );
+        }
+        vm.stopBroadcast();
     }
 
     function burnNFT(uint256 giftedBoxTokenId, uint256 tokenId) internal {
