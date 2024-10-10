@@ -89,11 +89,14 @@ contract GiftedBoxTest is Test, TestEvents {
         vault.initialize(address(this));
         sponsorBook = new GasSponsorBook();
         vault.grantRole(vault.CONTRACT_ROLE(), address(sponsorBook));
+        vault.grantRole(vault.CONTRACT_ROLE(), address(giftedBox));
 
         sponsorBook.setVault(vault);
         giftedBox.setGasSponsorBook(address(sponsorBook));
         sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
         sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
+
+        giftedBox.setVault(address(vault));
 
         vm.deal(gasRelayer, 100 ether);
     }
@@ -647,4 +650,75 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     // endregion Gas Sponsor
+
+    // Add these new test functions
+    function testSendGiftWithMintingFee() public {
+        uint256 tokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
+        uint256 mintingFee = 0.01 ether;
+
+        vm.deal(giftOperator, mintingFee);
+
+        uint256 vaultBalanceBefore = address(vault).balance;
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: mintingFee}(giftSender, giftRecipient, giftOperator, mintingFee);
+
+        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
+        assertEq(address(vault).balance, vaultBalanceBefore + mintingFee, "!vault-balance");
+
+        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        assertEq(giftSender, sender, "!sender");
+        assertEq(giftRecipient, recipient, "!recipient");
+        assertEq(giftOperator, operator, "!operator");
+    }
+
+    function testSendGiftWithSponsorTicket() public {
+        uint256 tokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
+        uint256 sponsorFee = giftedBox.feePerSponsorTicket();
+
+        vm.deal(giftOperator, sponsorFee);
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: sponsorFee}(giftSender, giftRecipient);
+
+        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
+        assertEq(giftedBox.sponsorTickets(tokenId), 1, "!sponsor-tickets");
+
+        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        assertEq(giftSender, sender, "!sender");
+        assertEq(giftRecipient, recipient, "!recipient");
+        assertEq(giftOperator, operator, "!operator");
+    }
+
+    function testSendGiftWithMintingFeeAndSponsorTicket() public {
+        uint256 tokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address giftOperator = vm.addr(3);
+        uint256 mintingFee = 0.01 ether;
+        uint256 sponsorFee = giftedBox.feePerSponsorTicket();
+        uint256 totalFee = mintingFee + sponsorFee;
+
+        vm.deal(giftOperator, totalFee);
+
+        uint256 vaultBalanceBefore = address(vault).balance;
+
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: totalFee}(giftSender, giftRecipient, giftOperator, mintingFee);
+
+        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
+        assertEq(address(vault).balance, vaultBalanceBefore + mintingFee + sponsorFee, "!vault-balance");
+        assertEq(giftedBox.sponsorTickets(tokenId), 1, "!sponsor-tickets");
+
+        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        assertEq(giftSender, sender, "!sender");
+        assertEq(giftRecipient, recipient, "!recipient");
+        assertEq(giftOperator, operator, "!operator");
+    }
 }
