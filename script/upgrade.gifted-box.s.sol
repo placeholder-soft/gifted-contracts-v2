@@ -6,7 +6,7 @@ import "../src/GiftedBox.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../src/UnifiedStore.sol";
-
+import "../src/Vault.sol";
 contract UpgradeGiftedBox is Script {
     GiftedBox public newImplementation;
     ERC1967Proxy public proxy;
@@ -19,6 +19,15 @@ contract UpgradeGiftedBox is Script {
         address newImplementationAddress = deploy_new_implementation();
         upgrade_proxy(newImplementationAddress);
         set_new_implementation_address(newImplementationAddress);
+
+        address vaultAddress = getAddressFromConfig("Vault");
+        Vault vault = Vault(vaultAddress);
+        address giftedBoxAddress = getAddressFromConfig("GiftedBox");
+
+        vault.grantRole(vault.CONTRACT_ROLE(), giftedBoxAddress);
+
+        GiftedBox giftedBox = GiftedBox(giftedBoxAddress);
+        giftedBox.setVault(vaultAddress);
 
         vm.stopBroadcast();
     }
