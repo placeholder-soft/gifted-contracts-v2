@@ -75,6 +75,15 @@ contract GiftedBox is
         uint256 ticket,
         uint256 value
     );
+    event MintingFeePaid(
+        address indexed payer,
+        address sender,
+        address recipient,
+        address operator,
+        uint256 tokenId,
+        uint256 fee
+    );
+    event VaultUpdated(address indexed newVault);
     // endregion
 
     // region storage
@@ -84,7 +93,7 @@ contract GiftedBox is
     ERC6551Registry public registry;
     GiftedAccountGuardian public guardian;
     IGasSponsorBook public gasSponsorBook;
-
+    IVault public vault;
     // endregion
 
     // region initializer
@@ -176,6 +185,11 @@ contract GiftedBox is
         emit GasSponsorBookUpdated(address(newGasSponsorBook));
     }
 
+    function setVault(address newVault) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        vault = IVault(newVault);
+        emit VaultUpdated(address(newVault));
+    }
+
     // endregion
 
     // region view
@@ -229,15 +243,16 @@ contract GiftedBox is
     // region gas sponsorship
     function handleSponsorshipAndTransfer(
         address tokenAccount,
-        uint256 tokenId
+        uint256 tokenId,
+        uint256 value
     ) internal {
         uint256 sponserFee = gasSponsorBook.feePerSponsorTicket();
-        uint256 numberOfTickets = msg.value / sponserFee;
+        uint256 numberOfTickets = value / sponserFee;
         if (numberOfTickets > 0) {
             uint256 ticket = generateTicketID(address(tokenAccount));
             uint256 transferFee = sponserFee * numberOfTickets;
             gasSponsorBook.addSponsorTicket{value: transferFee}(ticket);
-            uint256 left = msg.value - transferFee;
+            uint256 left = value - transferFee;
             if (left > 0) {
                 payable(tokenAccount).sendValue(left);
                 emit RefundToTokenBoundedAccount(
@@ -252,8 +267,7 @@ contract GiftedBox is
                 ticket,
                 numberOfTickets
             );
-        } else if (msg.value > 0) {
-            uint256 value = msg.value;
+        } else if (value > 0) {
             payable(tokenAccount).sendValue(value);
             emit RefundToTokenBoundedAccount(tokenAccount, msg.sender, value);
         }
@@ -311,7 +325,8 @@ contract GiftedBox is
     function sendGift(
         address sender,
         address recipient,
-        address operator
+        address operator,
+        uint256 mintingFee
     ) public payable whenNotPaused {
         require(sender != address(0), "!sender-address-0");
         require(sender != recipient, "!sender-recipient-same");
@@ -319,6 +334,12 @@ contract GiftedBox is
         uint256 tokenId = _nextTokenId++;
         _safeMint(sender, tokenId);
         _update(address(this), tokenId, address(0));
+
+        if (mintingFee > 0) {
+            require(address(vault) != address(0), "!vault-not-set");
+            vault.transferIn{value: mintingFee}(address(0), msg.sender, mintingFee);
+            emit MintingFeePaid(msg.sender, sender, recipient, operator, tokenId, mintingFee);
+        }
 
         giftingRecords[tokenId] = GiftingRecord({
             operator: operator,
@@ -334,16 +355,24 @@ contract GiftedBox is
             0
         );
         createAccountIfNeeded(tokenId, tokenAccount);
-        handleSponsorshipAndTransfer(tokenAccount, tokenId);
+        handleSponsorshipAndTransfer(tokenAccount, tokenId, msg.value - mintingFee);
 
         emit GiftedBoxSentToVault(sender, recipient, operator, tokenId);
     }
 
     function sendGift(
         address sender,
+        address recipient,
+        address operator
+    ) public payable whenNotPaused {
+        sendGift(sender, recipient, operator, 0);
+    }
+
+    function sendGift(
+        address sender,
         address recipient
     ) public payable whenNotPaused {
-        sendGift(sender, recipient, msg.sender);
+        sendGift(sender, recipient, msg.sender, 0);
     }
 
     function claimGift(uint256 tokenId, GiftingRole role) public whenNotPaused {
