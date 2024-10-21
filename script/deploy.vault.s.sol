@@ -11,14 +11,20 @@ contract DeployVault is Script {
 
     address public manager;
 
+    address public gasRelayer =
+        address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
+    address public deployer =
+        address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
+
     function run() public {
         deploy_contracts();
         setup_roles();
-        update_unified_store();
+        // update_unified_store();
     }
 
     function deploy_contracts() internal {
-        vm.startBroadcast(getAddressFromConfig("deployer"));
+        // vm.startBroadcast(getAddressFromConfig("deployer"));
+        vm.startBroadcast(deployer);
 
         nftVault = new NFTVault();
 
@@ -26,10 +32,14 @@ contract DeployVault is Script {
     }
 
     function setup_roles() internal {
-        vm.startBroadcast(getAddressFromConfig("deployer"));
+        // vm.startBroadcast(getAddressFromConfig("deployer"));
 
-        manager = getAddressFromConfig("manager");
-        nftVault.grantManagerRole(manager);
+        // manager = getAddressFromConfig("manager");
+        // nftVault.grantManagerRole(manager);
+
+        vm.startBroadcast(deployer);
+
+        nftVault.grantManagerRole(gasRelayer);
 
         vm.stopBroadcast();
     }
@@ -51,13 +61,23 @@ contract DeployVault is Script {
         vm.stopBroadcast();
     }
 
-    function getAddressFromConfig(string memory key) internal view returns (address) {
+    function getAddressFromConfig(
+        string memory key
+    ) internal view returns (address) {
         string memory env = vm.envString("DEPLOY_ENV");
         require(bytes(env).length > 0, "DEPLOY_ENV must be set");
         string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/config/", env, "_addresses.json");
+        string memory path = string.concat(
+            root,
+            "/config/",
+            env,
+            "_addresses.json"
+        );
         string memory json = vm.readFile(path);
-        bytes memory addressBytes = vm.parseJson(json, string.concat(".", vm.toString(block.chainid), ".", key));
+        bytes memory addressBytes = vm.parseJson(
+            json,
+            string.concat(".", vm.toString(block.chainid), ".", key)
+        );
         return abi.decode(addressBytes, (address));
     }
 }

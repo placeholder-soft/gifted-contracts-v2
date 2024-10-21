@@ -22,6 +22,8 @@ blast_sepolia = "${BLAST_SEPOLIA_RPC_URL}"
 zora = "${ZORA_RPC_URL}"
 zora_sepolia = "${ZORA_SEPOLIA_RPC_URL}"
 
+plume_testnet = "${PLUME_TESTNET_RPC_URL}"
+
 [etherscan]
 arbitrum = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api.arbiscan.io/api" }
 arbitrum_sepolia = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api-sepolia.arbiscan.io/api" }
@@ -36,3 +38,5 @@ blast_sepolia = { key = "${BLAST_SEPOLIA_ETHERSCAN_KEY}", url = "https://api.rou
 
 zora_sepolia = { key = "verifyContract", url = "https://api.routescan.io/v2/network/testnet/evm/999999999/etherscan" }
 zora = { key = "verifyContract", url = "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan" }
+
+plume_testnet = { key = "verifyContract", url = "https://testnet-explorer.plumenetwork.xyz/api" }
