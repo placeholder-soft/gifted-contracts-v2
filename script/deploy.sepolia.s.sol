@@ -13,6 +13,7 @@ import "erc6551/ERC6551Registry.sol";
 import "../src/GasSponsorBook.sol";
 import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
+import "../src/NFTVault.sol";
 
 contract DeploySepolia is Script {
     MockERC721 internal mockERC721;
@@ -22,6 +23,7 @@ contract DeploySepolia is Script {
     GiftedAccountGuardian internal guardian;
     GiftedAccount internal giftedAccount;
     Vault public vault;
+    NFTVault public nftVault;
     GasSponsorBook public sponsorBook;
     UnifiedStore public unifiedStore;
 
@@ -143,11 +145,13 @@ contract DeploySepolia is Script {
         sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
         sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
 
+        nftVault = new NFTVault();
+        nftVault.grantManagerRole(gasRelayer);
 
         unifiedStore = new UnifiedStore();
 
-        string[] memory keys = new string[](6);
-        address[] memory addresses = new address[](6);
+        string[] memory keys = new string[](7);
+        address[] memory addresses = new address[](7);
         keys[0] = "GiftedAccountGuardian";
         addresses[0] = address(guardian);
 
@@ -165,6 +169,9 @@ contract DeploySepolia is Script {
 
         keys[5] = "ERC6551Registry";
         addresses[5] = address(registry);
+
+        keys[6] = "NFTVault";
+        addresses[6] = address(nftVault);
 
         unifiedStore.setAddresses(keys, addresses);
 
