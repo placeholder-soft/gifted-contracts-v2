@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import "../src/mocks/MockERC20.sol";
 import "../src/UnifiedStore.sol";
 
-contract DeployMockERC20Sepolia is Script {
+contract SendFundsTestnet is Script {
     MockERC20 public mockUSDT;
     MockERC20 public mockUSDC;
     MockERC20 public mockWBTC;
@@ -19,55 +19,46 @@ contract DeployMockERC20Sepolia is Script {
         0x8c4Eb6988A199DAbcae0Ce31052b3f3aC591787e
     ];
 
+    uint256 constant USDT_AMOUNT = 10000 ether;
+    uint256 constant USDC_AMOUNT = 10000 ether;
+    uint256 constant WBTC_AMOUNT = 10 ether;
+
     function run() public {
         deployer = getAddressFromConfig("deployer");
         vm.startBroadcast(deployer);
 
-        // Deploy MockUSDT
-        mockUSDT = new MockERC20(deployer, "Tether USD", "USDT");
-        mintToAll(mockUSDT, 10000 ether); // USDT typically has 6 decimals
-
-        // Deploy MockUSDC
-        mockUSDC = new MockERC20(deployer, "USD Coin", "USDC");
-        mintToAll(mockUSDC, 10000 ether); // USDC typically has 6 decimals
-
-        // Deploy MockWBTC
-        mockWBTC = new MockERC20(deployer, "Wrapped BTC", "WBTC");
-        mintToAll(mockWBTC, 10 ether); // WBTC typically has 8 decimals
-
-        // Update UnifiedStore with new token addresses
+        // Get token addresses from UnifiedStore
         address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
         unifiedStore = UnifiedStore(unifiedStoreAddress);
-        string[] memory keys = new string[](3);
-        address[] memory addresses = new address[](3);
+        address usdtAddress = unifiedStore.getAddress("TOKEN_USDT");
+        address usdcAddress = unifiedStore.getAddress("TOKEN_USDC");
+        address wbtcAddress = unifiedStore.getAddress("TOKEN_WBTC");
 
-        keys[0] = "TOKEN_USDT";
-        addresses[0] = address(mockUSDT);
+        mockUSDT = MockERC20(usdtAddress);
+        mockUSDC = MockERC20(usdcAddress);
+        mockWBTC = MockERC20(wbtcAddress);
 
-        keys[1] = "TOKEN_USDC";
-        addresses[1] = address(mockUSDC);
-
-        keys[2] = "TOKEN_WBTC";
-        addresses[2] = address(mockWBTC);
-
-        unifiedStore.setAddresses(keys, addresses);
+        checkAndMint(mockUSDT, USDT_AMOUNT);
+        checkAndMint(mockUSDC, USDC_AMOUNT);
+        checkAndMint(mockWBTC, WBTC_AMOUNT);
 
         vm.stopBroadcast();
-
-        // Log the deployed contract addresses
-        console.log("MockUSDT deployed at:", address(mockUSDT));
-        console.log("MockUSDC deployed at:", address(mockUSDC));
-        console.log("MockWBTC deployed at:", address(mockWBTC));
-        console.log("UnifiedStore updated with new token addresses");
     }
 
-    function mintToAll(MockERC20 token, uint256 amount) internal {
-        // Mint to deployer
-        token.mint(deployer, amount);
+    function checkAndMint(MockERC20 token, uint256 targetAmount) internal {
+        uint256 threshold = (targetAmount * 60) / 100; // 60% of target amount
 
-        // Mint to specified users
         for (uint i = 0; i < USERS.length; i++) {
-            token.mint(USERS[i], amount);
+            address user = USERS[i];
+            uint256 balance = token.balanceOf(user);
+
+            if (balance <= threshold) {
+                uint256 amountToMint = targetAmount - balance;
+                token.mint(user, amountToMint);
+                console.log("Minted %s %s to %s", amountToMint, token.symbol(), user);
+            } else {
+                console.log("Skipped minting %s for %s, balance sufficient", token.symbol(), user);
+            }
         }
     }
 
