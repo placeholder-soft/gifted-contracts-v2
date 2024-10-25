@@ -899,4 +899,161 @@ contract GiftedBoxTest is Test, TestEvents {
             )
         );
     }
+
+    // Add these new test functions at the end of the GiftedBoxTest contract
+
+    function testTransferEther() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address payable etherRecipient = payable(vm.addr(3));
+        address giftOperator = vm.addr(4);
+        uint256 amount = 1 ether;
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Send Ether to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.deal(address(tokenAccount), amount);
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferEtherPermitMessage(
+            giftedBoxTokenId,
+            amount,
+            etherRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer Ether using permit
+        uint256 initialBalance = etherRecipient.balance;
+        vm.prank(giftSender);
+        giftedBox.transferEther(
+            giftedBoxTokenId,
+            amount,
+            etherRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify Ether transfer
+        assertEq(etherRecipient.balance, initialBalance + amount);
+        assertEq(address(tokenAccount).balance, 0);
+    }
+
+    function testTransferEtherSponsor() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address payable etherRecipient = payable(vm.addr(3));
+        address giftOperator = vm.addr(4);
+        uint256 amount = 1 ether;
+        uint256 feePerTicket = giftedBox.feePerSponsorTicket();
+        vm.deal(giftOperator, feePerTicket);
+
+        // Send gift with sponsor ticket
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: feePerTicket}(giftSender, giftRecipient);
+
+        // Send Ether to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.deal(address(tokenAccount), amount);
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferEtherPermitMessage(
+            giftedBoxTokenId,
+            amount,
+            etherRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer Ether using sponsor
+        uint256 initialBalance = etherRecipient.balance;
+        vm.prank(gasRelayer);
+        giftedBox.transferEtherSponsor(
+            giftedBoxTokenId,
+            amount,
+            etherRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify Ether transfer
+        assertEq(etherRecipient.balance, initialBalance + amount);
+        assertEq(address(tokenAccount).balance, 0);
+    }
+
+    function testTransferEtherPermitMessage() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address etherRecipient = vm.addr(3);
+        uint256 amount = 1 ether;
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Send gift
+        vm.prank(giftSender);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferEtherPermitMessage(
+            giftedBoxTokenId,
+            amount,
+            etherRecipient,
+            deadline
+        );
+
+        // Verify permit message content
+        assertEq(
+            permitMessage,
+            string(
+                abi.encodePacked(
+                    "I authorize the transfer of Ether",
+                    "\n Amount: ",
+                    Strings.toString(amount),
+                    "\n To: ",
+                    Strings.toHexString(uint256(uint160(etherRecipient)), 20),
+                    "\n Deadline: ",
+                    Strings.toString(deadline),
+                    "\n Nonce: ",
+                    Strings.toString(0),
+                    "\n Chain ID: ",
+                    Strings.toString(block.chainid),
+                    "\n BY: ",
+                    "GiftedAccount",
+                    "\n Version: ",
+                    "0.0.2"
+                )
+            )
+        );
+    }
 }

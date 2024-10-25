@@ -94,6 +94,15 @@ contract GiftedBox is
         address signer,
         address relayer
     );
+    event TransferEtherPermit(
+        uint256 indexed giftedBoxTokenId,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        uint256 deadline,
+        address signer,
+        address relayer
+    );
     // endregion
 
     // region storage
@@ -648,6 +657,66 @@ contract GiftedBox is
             tokenContract,
             amount,
             to,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+
+    function transferEtherPermitMessage(
+        uint256 giftedBoxTokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory) {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+        return
+            account.getTransferEtherPermitMessage(
+                amount,
+                to,
+                deadline
+            );
+    }
+
+    function transferEther(
+        uint256 giftedBoxTokenId,
+        uint256 amount,
+        address payable to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+
+        account.transferEther(to, amount, deadline, v, r, s);
+    }
+
+    function transferEtherSponsor(
+        uint256 giftedBoxTokenId,
+        uint256 amount,
+        address payable to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(tokenAccount).transferEther(
+            to,
+            amount,
             deadline,
             v,
             r,
