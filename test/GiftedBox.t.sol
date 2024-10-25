@@ -16,6 +16,7 @@ import "@openzeppelin-contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/Vault.sol";
 import "../src/GasSponsorBook.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockERC721 is ERC721 {
     constructor() ERC721("MockERC721", "M721") {}
@@ -41,6 +42,14 @@ contract MockERC1155 is ERC1155 {
     }
 }
 
+contract MockERC20 is ERC20 {
+    constructor() ERC20("MockERC20", "M20") {}
+
+    function mint(address to, uint256 amount) public {
+        _mint(to, amount);
+    }
+}
+
 interface TestEvents {
     event Transfer(
         address indexed from,
@@ -59,6 +68,7 @@ contract GiftedBoxTest is Test, TestEvents {
     Vault public vault;
     GasSponsorBook public sponsorBook;
     address gasRelayer = vm.addr(32000);
+    MockERC20 internal mockERC20;
 
     // region Setup
     function setUp() public {
@@ -97,6 +107,8 @@ contract GiftedBoxTest is Test, TestEvents {
         sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
 
         giftedBox.setVault(address(vault));
+
+        mockERC20 = new MockERC20();
 
         vm.deal(gasRelayer, 100 ether);
     }
@@ -720,5 +732,171 @@ contract GiftedBoxTest is Test, TestEvents {
         assertEq(giftSender, sender, "!sender");
         assertEq(giftRecipient, recipient, "!recipient");
         assertEq(giftOperator, operator, "!operator");
+    }
+
+    function testTransferERC20() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 amount = 100;
+
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Mint ERC20 tokens to giftOperator
+        mockERC20.mint(giftOperator, amount);
+
+        // Transfer ERC20 tokens to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC20.transfer(address(tokenAccount), amount);
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC20PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC20),
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC20 tokens using permit
+        vm.prank(giftSender);
+        giftedBox.transferERC20(
+            giftedBoxTokenId,
+            address(mockERC20),
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC20.balanceOf(tokenRecipient), amount);
+    }
+
+    function testTransferERC20Sponsor() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        address giftOperator = vm.addr(4);
+        uint256 amount = 100;
+        uint256 feePerTicket = giftedBox.feePerSponsorTicket();
+        vm.deal(giftOperator, feePerTicket);
+
+        // Send gift with sponsor ticket
+        vm.prank(giftOperator);
+        giftedBox.sendGift{value: feePerTicket}(giftSender, giftRecipient);
+
+        // Mint ERC20 tokens to giftOperator
+        mockERC20.mint(giftOperator, amount);
+
+        // Transfer ERC20 tokens to token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+        vm.prank(giftOperator);
+        mockERC20.transfer(address(tokenAccount), amount);
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC20PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC20),
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Transfer ERC20 tokens using sponsor
+        vm.prank(gasRelayer);
+        giftedBox.transferERC20Sponsor(
+            giftedBoxTokenId,
+            address(mockERC20),
+            amount,
+            tokenRecipient,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify token ownership
+        assertEq(mockERC20.balanceOf(tokenRecipient), amount);
+    }
+
+    function testTransferERC20PermitMessage() public {
+        uint256 giftedBoxTokenId = 0;
+        address giftSender = vm.addr(1);
+        address giftRecipient = vm.addr(2);
+        address tokenRecipient = vm.addr(3);
+        uint256 amount = 100;
+        uint256 deadline = block.timestamp + 1 days;
+
+        // Send gift
+        vm.prank(giftSender);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Generate permit message
+        string memory permitMessage = giftedBox.transferERC20PermitMessage(
+            giftedBoxTokenId,
+            address(mockERC20),
+            amount,
+            tokenRecipient,
+            deadline
+        );
+
+        // Verify permit message content
+        assertEq(
+            permitMessage,
+            string(
+                abi.encodePacked(
+                    "I authorize the transfer of ERC20 tokens",
+                    "\n Token Contract: ",
+                    Strings.toHexString(uint256(uint160(address(mockERC20))), 20),
+                    "\n Amount: ",
+                    Strings.toString(amount),
+                    "\n To: ",
+                    Strings.toHexString(uint256(uint160(tokenRecipient)), 20),
+                    "\n Deadline: ",
+                    Strings.toString(deadline),
+                    "\n Nonce: ",
+                    Strings.toString(0),
+                    "\n Chain ID: ",
+                    Strings.toString(block.chainid),
+                    "\n BY: ",
+                    "GiftedAccount",
+                    "\n Version: ",
+                    "0.0.2"
+                )
+            )
+        );
     }
 }

@@ -84,6 +84,16 @@ contract GiftedBox is
         uint256 fee
     );
     event VaultUpdated(address indexed newVault);
+    event TransferERC20Permit(
+        uint256 indexed giftedBoxTokenId,
+        address indexed from,
+        address indexed to,
+        address tokenContract,
+        uint256 amount,
+        uint256 deadline,
+        address signer,
+        address relayer
+    );
     // endregion
 
     // region storage
@@ -571,6 +581,71 @@ contract GiftedBox is
         IGiftedAccount(tokenAccount).transferERC1155(
             tokenContract,
             tokenId,
+            amount,
+            to,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+
+    function transferERC20PermitMessage(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory) {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+        return
+            account.getTransferERC20PermitMessage(
+                tokenContract,
+                amount,
+                to,
+                deadline
+            );
+    }
+
+    function transferERC20(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+
+        account.transferERC20(tokenContract, amount, to, deadline, v, r, s);
+    }
+
+    function transferERC20Sponsor(
+        uint256 giftedBoxTokenId,
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(tokenAccount).transferERC20(
+            tokenContract,
             amount,
             to,
             deadline,

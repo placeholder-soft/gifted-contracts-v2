@@ -18,6 +18,7 @@ import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IGiftedBox.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 
 error UntrustedImplementation();
 error NotAuthorized();
@@ -106,6 +107,17 @@ contract GiftedAccount is
         address indexed to,
         address indexed nft,
         uint256 tokenId,
+        uint256 deadline,
+        uint256 nonce,
+        address signer,
+        address relayer
+    );
+
+    event TransferERC20Permit(
+        address indexed from,
+        address indexed to,
+        address indexed tokenContract,
+        uint256 amount,
         uint256 deadline,
         uint256 nonce,
         address signer,
@@ -616,5 +628,67 @@ contract GiftedAccount is
                 _msg
             )
         );
+    }
+
+    function transferERC20(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(block.timestamp <= deadline, "!call-permit-expired");
+        string memory message = getTransferERC20PermitMessage(
+            tokenContract,
+            amount,
+            to,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = _recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+
+        IERC20(tokenContract).transfer(to, amount);
+        emit TransferERC20Permit(
+            address(this),
+            to,
+            tokenContract,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
+    function getTransferERC20PermitMessage(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string.concat(
+                "I authorize the transfer of ERC20 tokens",
+                "\n Token Contract: ",
+                Strings.toHexString(uint256(uint160(tokenContract)), 20),
+                "\n Amount: ",
+                Strings.toString(amount),
+                "\n To: ",
+                Strings.toHexString(uint256(uint160(to)), 20),
+                "\n Deadline: ",
+                Strings.toString(deadline),
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.2"
+            );
     }
 }
