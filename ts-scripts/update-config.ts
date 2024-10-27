@@ -15,6 +15,7 @@ const keys = [
   "GasSponsorBook",
   "NFTVault",
   "GiftedBoxImplementation",
+  "GiftedAccountImplementation",
   "TOKEN_USDT",
   "TOKEN_USDC",
   "TOKEN_WBTC",

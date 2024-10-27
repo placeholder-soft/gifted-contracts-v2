@@ -8,7 +8,8 @@ import "@openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
 contract UpgradeGiftedBox is Script {
-    GiftedBox public newImplementation;
+    GiftedBox public newGiftedBox;
+    GiftedAccount public newGiftedAccount;
     ERC1967Proxy public proxy;
     UnifiedStore public unifiedStore;
 
@@ -16,28 +17,32 @@ contract UpgradeGiftedBox is Script {
         address deployer = getAddressFromConfig("deployer");
         vm.startBroadcast(deployer);
 
-        address newImplementationAddress = deploy_new_implementation();
-        upgrade_proxy(newImplementationAddress);
-        set_new_implementation_address(newImplementationAddress);
+        address newGiftedBoxImplementation = deploy_new_gifted_box();
+        upgrade_gifted_box(newGiftedBoxImplementation);
+        set_new_gifted_box_address(newGiftedBoxImplementation);
 
-        address vaultAddress = getAddressFromConfig("Vault");
-        Vault vault = Vault(vaultAddress);
-        address giftedBoxAddress = getAddressFromConfig("GiftedBox");
+        address newGiftedAccountImplementation = deploy_new_gifted_account();
+        set_new_gifted_account_address(newGiftedAccountImplementation);
 
-        vault.grantRole(vault.CONTRACT_ROLE(), giftedBoxAddress);
-
-        GiftedBox giftedBox = GiftedBox(giftedBoxAddress);
-        giftedBox.setVault(vaultAddress);
+        address guardianAddress = getAddressFromConfig("GiftedAccountGuardian");
+        GiftedAccountGuardian guardian = GiftedAccountGuardian(guardianAddress);
+        guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
+        console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
 
         vm.stopBroadcast();
     }
 
-    function deploy_new_implementation() internal returns (address) {
-        newImplementation = new GiftedBox();
-        return address(newImplementation);
+    function deploy_new_gifted_box() internal returns (address) {
+        newGiftedBox = new GiftedBox();
+        return address(newGiftedBox);
     }
 
-    function upgrade_proxy(address newImplementationAddress) internal {
+    function deploy_new_gifted_account() internal returns (address) {
+        newGiftedAccount = new GiftedAccount();
+        return address(newGiftedAccount);
+    }
+
+    function upgrade_gifted_box(address newGiftedBoxImplementation) internal {
         address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
         unifiedStore = UnifiedStore(unifiedStoreAddress);
 
@@ -45,20 +50,28 @@ contract UpgradeGiftedBox is Script {
         proxy = ERC1967Proxy(payable(proxyAddress));
 
         GiftedBox existingImplementation = GiftedBox(address(proxy));
-        if (address(existingImplementation) != newImplementationAddress) {
-            UUPSUpgradeable(address(proxy)).upgradeToAndCall(newImplementationAddress, "");
-            console.log("GiftedBox upgraded to new implementation:", newImplementationAddress);
+        if (address(existingImplementation) != newGiftedBoxImplementation) {
+            UUPSUpgradeable(address(proxy)).upgradeToAndCall(newGiftedBoxImplementation, "");
+            console.log("GiftedBox upgraded to new implementation:", newGiftedBoxImplementation);
         } else {
             console.log("GiftedBox is already up to date");
         }
     }
 
-    function set_new_implementation_address(address newImplementationAddress) internal {
+    function set_new_gifted_box_address(address newGiftedBoxImplementation) internal {
         address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
         unifiedStore = UnifiedStore(unifiedStoreAddress);
 
-        unifiedStore.setAddress("GiftedBoxImplementation", newImplementationAddress);
-        console.log("New GiftedBox implementation address set in UnifiedStore:", newImplementationAddress);
+        unifiedStore.setAddress("GiftedBoxImplementation", newGiftedBoxImplementation);
+        console.log("New GiftedBox implementation address set in UnifiedStore:", newGiftedBoxImplementation);
+    }
+
+    function set_new_gifted_account_address(address newGiftedAccountImplementation) internal {
+        address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
+        unifiedStore = UnifiedStore(unifiedStoreAddress);
+
+        unifiedStore.setAddress("GiftedAccountImplementation", newGiftedAccountImplementation);
+        console.log("New GiftedAccount implementation address set in UnifiedStore:", newGiftedAccountImplementation);
     }
 
     function getAddressFromConfig(string memory key) internal view returns (address) {
