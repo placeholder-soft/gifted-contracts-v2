@@ -488,6 +488,27 @@ contract GiftedAccount is
         return call(to, value, data);
     }
 
+    function _transferERC721(
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        address signer,
+        uint256 deadline
+    ) internal {
+        _incrementNonce();
+        IERC721(tokenContract).safeTransferFrom(address(this), to, tokenId);
+        emit TransferERC721Permit(
+            address(this),
+            to,
+            tokenContract,
+            tokenId,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
     function transferERC721(
         address tokenContract,
         uint256 tokenId,
@@ -509,17 +530,7 @@ contract GiftedAccount is
         address signer = _recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
-        IERC721(tokenContract).safeTransferFrom(address(this), to, tokenId);
-        emit TransferERC721Permit(
-            address(this),
-            to,
-            tokenContract,
-            tokenId,
-            deadline,
-            nonce(),
-            signer,
-            msg.sender
-        );
+        _transferERC721(tokenContract, tokenId, to, signer, deadline);
     }
 
     function getTransferERC721PermitMessage(
@@ -553,7 +564,35 @@ contract GiftedAccount is
             );
     }
 
-    // Method to transfer ERC1155 tokens with a permit
+    function _transferERC1155(
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        address signer,
+        uint256 deadline
+    ) internal {
+        _incrementNonce();
+        IERC1155(tokenContract).safeTransferFrom(
+            address(this),
+            to,
+            tokenId,
+            amount,
+            ""
+        );
+        emit TransferERC1155Permit(
+            address(this),
+            to,
+            tokenContract,
+            tokenId,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
     function transferERC1155(
         address tokenContract,
         uint256 tokenId,
@@ -577,27 +616,9 @@ contract GiftedAccount is
         address signer = ECDSA.recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
-        IERC1155(tokenContract).safeTransferFrom(
-            address(this),
-            to,
-            tokenId,
-            amount,
-            ""
-        );
-        emit TransferERC1155Permit(
-            address(this),
-            to,
-            tokenContract,
-            tokenId,
-            amount,
-            deadline,
-            nonce(),
-            signer,
-            msg.sender
-        );
+        _transferERC1155(tokenContract, tokenId, amount, to, signer, deadline);
     }
 
-    // Method to create a message for ERC1155 token transfer with a permit
     function getTransferERC1155PermitMessage(
         address tokenContract,
         uint256 tokenId,
@@ -641,6 +662,27 @@ contract GiftedAccount is
         );
     }
 
+    function _transferERC20(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        address signer,
+        uint256 deadline
+    ) internal {
+        _incrementNonce();
+        IERC20(tokenContract).transfer(to, amount);
+        emit TransferERC20Permit(
+            address(this),
+            to,
+            tokenContract,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
     function transferERC20(
         address tokenContract,
         uint256 amount,
@@ -662,17 +704,7 @@ contract GiftedAccount is
         address signer = _recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
-        IERC20(tokenContract).transfer(to, amount);
-        emit TransferERC20Permit(
-            address(this),
-            to,
-            tokenContract,
-            amount,
-            deadline,
-            nonce(),
-            signer,
-            msg.sender
-        );
+        _transferERC20(tokenContract, amount, to, signer, deadline);
     }
 
     function getTransferERC20PermitMessage(
@@ -703,7 +735,25 @@ contract GiftedAccount is
             );
     }
 
-    // Add these new functions
+    function _transferEther(
+        address payable to,
+        uint256 amount,
+        address signer,
+        uint256 deadline
+    ) internal {
+        _incrementNonce();
+        to.transfer(amount);
+        emit TransferEtherPermit(
+            address(this),
+            to,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
     function transferEther(
         address payable to,
         uint256 amount,
@@ -723,16 +773,7 @@ contract GiftedAccount is
         address signer = _recover(signHash, v, r, s);
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
-        to.transfer(amount);
-        emit TransferEtherPermit(
-            address(this),
-            to,
-            amount,
-            deadline,
-            nonce(),
-            signer,
-            msg.sender
-        );
+        _transferEther(to, amount, signer, deadline);
     }
 
     function getTransferEtherPermitMessage(
