@@ -724,5 +724,56 @@ contract GiftedBox is
         );
     }
 
+    function batchTransferPermitMessage(
+        uint256 giftedBoxTokenId,
+        bytes[] calldata data,
+        uint256 deadline
+    ) external view returns (string memory) {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+        return account.getBatchTransferPermitMessage(data, deadline);
+    }
+
+    function batchTransfer(
+        uint256 giftedBoxTokenId,
+        bytes[] calldata data,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IGiftedAccount account = IGiftedAccount(
+            tokenAccountAddress(giftedBoxTokenId)
+        );
+
+        account.batchTransfer(data, deadline, v, r, s);
+    }
+
+    function batchTransferSponsor(
+        uint256 giftedBoxTokenId,
+        bytes[] calldata data,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(tokenAccount).batchTransfer(
+            data,
+            deadline,
+            v,
+            r,
+            s
+        );
+    }
+
     // endregion Forward Methods
 }

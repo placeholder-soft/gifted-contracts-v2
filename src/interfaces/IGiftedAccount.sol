@@ -75,4 +75,17 @@ interface IGiftedAccount {
         bytes32 r,
         bytes32 s
     ) external;
+
+    function getBatchTransferPermitMessage(
+        bytes[] calldata data,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function batchTransfer(
+        bytes[] calldata data,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 }

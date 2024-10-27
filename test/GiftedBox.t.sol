@@ -70,6 +70,19 @@ contract GiftedBoxTest is Test, TestEvents {
     address gasRelayer = vm.addr(32000);
     MockERC20 internal mockERC20;
 
+    // global testing variable to be used in multiple tests
+    // to avoid stacks to deeps error
+    uint256 giftedBoxTokenId = 0;
+    address giftSender = vm.addr(1);
+    address giftRecipient = vm.addr(2);
+    address tokenRecipient = vm.addr(3);
+    address giftOperator = vm.addr(4);
+    uint256 erc20Amount = 100;
+    uint256 erc721TokenId = 1;
+    uint256 erc1155TokenId = 1;
+    uint256 erc1155Amount = 10;
+    uint256 etherAmount = 0.1 ether;
+
     // region Setup
     function setUp() public {
         mockERC721 = new MockERC721();
@@ -118,9 +131,6 @@ contract GiftedBoxTest is Test, TestEvents {
     // region Gifting Actions
     function testSendGift() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
 
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -136,9 +146,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testClaimGiftByRecipient() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
 
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -156,9 +163,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testClaimGiftBySender() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
 
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -176,9 +180,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testclaimGiftByClaimer() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
 
         vm.prank(giftOperator);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -223,8 +224,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testTokenBoundAccountCallDirectly() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
 
         vm.prank(giftSender);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -274,9 +273,8 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testTokenBoundAccountERC721() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address randomAccount = vm.addr(3);
+
+        address randomAccount = vm.addr(30);
 
         vm.prank(giftSender);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -304,9 +302,8 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testTokenBoundAccountERC1155() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address randomAccount = vm.addr(3);
+
+        address randomAccount = vm.addr(30);
 
         vm.prank(giftSender);
         giftedBox.sendGift(giftSender, giftRecipient);
@@ -379,11 +376,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     // region Transfer ERC721
     function testTransferERC721() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 tokenId = 100;
 
         // Send gift
@@ -441,11 +433,6 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferERC721Sponsor() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 tokenId = 100;
         uint256 feePerTicket = giftedBox.feePerSponsorTicket();
         vm.deal(giftOperator, feePerTicket);
@@ -503,15 +490,11 @@ contract GiftedBoxTest is Test, TestEvents {
         // Verify token ownership
         assertEq(mockERC721.ownerOf(tokenId), tokenRecipient);
     }
+
     // endregion Transfer ERC721
 
     // region Transfer ERC1155
     function testTransferERC1155() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 tokenId = 100;
         uint256 amount = 10;
 
@@ -574,11 +557,6 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferERC1155Sponsor() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 tokenId = 100;
         uint256 amount = 10;
         uint256 feePerTicket = giftedBox.feePerSponsorTicket();
@@ -641,14 +619,12 @@ contract GiftedBoxTest is Test, TestEvents {
         // Verify token ownership
         assertEq(mockERC1155.balanceOf(tokenRecipient, tokenId), amount);
     }
+
     // endregion Transfer ERC1155
 
     // region Gas Sponsor
     function testGasSponsorBookWithConsumer() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
         uint256 feePerTicket = giftedBox.feePerSponsorTicket();
         vm.deal(giftOperator, feePerTicket * 2);
 
@@ -663,14 +639,12 @@ contract GiftedBoxTest is Test, TestEvents {
         );
         vm.assertEq(gasRelayer.balance, beforeBalance + feePerTicket);
     }
+
     // endregion Gas Sponsor
 
     // region Send Gift with Fees
     function testSendGiftWithMintingFee() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
         uint256 mintingFee = 0.01 ether;
 
         vm.deal(giftOperator, mintingFee);
@@ -678,12 +652,26 @@ contract GiftedBoxTest is Test, TestEvents {
         uint256 vaultBalanceBefore = address(vault).balance;
 
         vm.prank(giftOperator);
-        giftedBox.sendGift{value: mintingFee}(giftSender, giftRecipient, giftOperator, mintingFee);
+        giftedBox.sendGift{value: mintingFee}(
+            giftSender,
+            giftRecipient,
+            giftOperator,
+            mintingFee
+        );
 
-        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
-        assertEq(address(vault).balance, vaultBalanceBefore + mintingFee, "!vault-balance");
+        assertEq(
+            address(giftedBox),
+            IERC721(giftedBox).ownerOf(tokenId),
+            "!owner"
+        );
+        assertEq(
+            address(vault).balance,
+            vaultBalanceBefore + mintingFee,
+            "!vault-balance"
+        );
 
-        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(giftSender, sender, "!sender");
         assertEq(giftRecipient, recipient, "!recipient");
         assertEq(giftOperator, operator, "!operator");
@@ -691,9 +679,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testSendGiftWithSponsorTicket() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
         uint256 sponsorFee = giftedBox.feePerSponsorTicket();
 
         vm.deal(giftOperator, sponsorFee);
@@ -701,10 +686,15 @@ contract GiftedBoxTest is Test, TestEvents {
         vm.prank(giftOperator);
         giftedBox.sendGift{value: sponsorFee}(giftSender, giftRecipient);
 
-        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
+        assertEq(
+            address(giftedBox),
+            IERC721(giftedBox).ownerOf(tokenId),
+            "!owner"
+        );
         assertEq(giftedBox.sponsorTickets(tokenId), 1, "!sponsor-tickets");
 
-        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(giftSender, sender, "!sender");
         assertEq(giftRecipient, recipient, "!recipient");
         assertEq(giftOperator, operator, "!operator");
@@ -712,9 +702,6 @@ contract GiftedBoxTest is Test, TestEvents {
 
     function testSendGiftWithMintingFeeAndSponsorTicket() public {
         uint256 tokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address giftOperator = vm.addr(3);
         uint256 mintingFee = 0.01 ether;
         uint256 sponsorFee = giftedBox.feePerSponsorTicket();
         uint256 totalFee = mintingFee + sponsorFee;
@@ -724,26 +711,36 @@ contract GiftedBoxTest is Test, TestEvents {
         uint256 vaultBalanceBefore = address(vault).balance;
 
         vm.prank(giftOperator);
-        giftedBox.sendGift{value: totalFee}(giftSender, giftRecipient, giftOperator, mintingFee);
+        giftedBox.sendGift{value: totalFee}(
+            giftSender,
+            giftRecipient,
+            giftOperator,
+            mintingFee
+        );
 
-        assertEq(address(giftedBox), IERC721(giftedBox).ownerOf(tokenId), "!owner");
-        assertEq(address(vault).balance, vaultBalanceBefore + mintingFee + sponsorFee, "!vault-balance");
+        assertEq(
+            address(giftedBox),
+            IERC721(giftedBox).ownerOf(tokenId),
+            "!owner"
+        );
+        assertEq(
+            address(vault).balance,
+            vaultBalanceBefore + mintingFee + sponsorFee,
+            "!vault-balance"
+        );
         assertEq(giftedBox.sponsorTickets(tokenId), 1, "!sponsor-tickets");
 
-        (address sender, address recipient, address operator) = giftedBox.giftingRecords(tokenId);
+        (address sender, address recipient, address operator) = giftedBox
+            .giftingRecords(tokenId);
         assertEq(giftSender, sender, "!sender");
         assertEq(giftRecipient, recipient, "!recipient");
         assertEq(giftOperator, operator, "!operator");
     }
+
     // endregion Send Gift with Fees
 
     // region Transfer ERC20
     function testTransferERC20() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 amount = 100;
 
         // Send gift
@@ -797,11 +794,6 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferERC20Sponsor() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
-        address giftOperator = vm.addr(4);
         uint256 amount = 100;
         uint256 feePerTicket = giftedBox.feePerSponsorTicket();
         vm.deal(giftOperator, feePerTicket);
@@ -857,10 +849,6 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferERC20PermitMessage() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address tokenRecipient = vm.addr(3);
         uint256 amount = 100;
         uint256 deadline = block.timestamp + 1 days;
 
@@ -884,7 +872,10 @@ contract GiftedBoxTest is Test, TestEvents {
                 abi.encodePacked(
                     "I authorize the transfer of ERC20 tokens",
                     "\n Token Contract: ",
-                    Strings.toHexString(uint256(uint160(address(mockERC20))), 20),
+                    Strings.toHexString(
+                        uint256(uint160(address(mockERC20))),
+                        20
+                    ),
                     "\n Amount: ",
                     Strings.toString(amount),
                     "\n To: ",
@@ -903,15 +894,12 @@ contract GiftedBoxTest is Test, TestEvents {
             )
         );
     }
+
     // endregion Transfer ERC20
 
     // region Transfer Ether
     function testTransferEther() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
         address payable etherRecipient = payable(vm.addr(3));
-        address giftOperator = vm.addr(4);
         uint256 amount = 1 ether;
 
         // Send gift
@@ -961,11 +949,7 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferEtherSponsor() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
         address payable etherRecipient = payable(vm.addr(3));
-        address giftOperator = vm.addr(4);
         uint256 amount = 1 ether;
         uint256 feePerTicket = giftedBox.feePerSponsorTicket();
         vm.deal(giftOperator, feePerTicket);
@@ -1017,10 +1001,7 @@ contract GiftedBoxTest is Test, TestEvents {
     }
 
     function testTransferEtherPermitMessage() public {
-        uint256 giftedBoxTokenId = 0;
-        address giftSender = vm.addr(1);
-        address giftRecipient = vm.addr(2);
-        address etherRecipient = vm.addr(3);
+        address etherRecipient = vm.addr(30);
         uint256 amount = 1 ether;
         uint256 deadline = block.timestamp + 1 days;
 
@@ -1060,5 +1041,119 @@ contract GiftedBoxTest is Test, TestEvents {
             )
         );
     }
+
     // endregion Transfer Ether
+
+    function testBatchTransfer() public {
+        // Send gift
+        vm.prank(giftOperator);
+        giftedBox.sendGift(giftSender, giftRecipient);
+
+        // Mint and transfer tokens to the token-bound account
+        GiftedAccount tokenAccount = GiftedAccount(
+            payable(giftedBox.tokenAccountAddress(giftedBoxTokenId))
+        );
+
+        mockERC20.mint(giftOperator, erc20Amount);
+        mockERC721.mint(giftOperator, erc721TokenId);
+        mockERC1155.mint(giftOperator, erc1155TokenId, erc1155Amount);
+
+        vm.startPrank(giftOperator);
+        mockERC20.transfer(address(tokenAccount), erc20Amount);
+        mockERC721.transferFrom(
+            giftOperator,
+            address(tokenAccount),
+            erc721TokenId
+        );
+        mockERC1155.safeTransferFrom(
+            giftOperator,
+            address(tokenAccount),
+            erc1155TokenId,
+            erc1155Amount,
+            ""
+        );
+        vm.stopPrank();
+        vm.deal(address(tokenAccount), etherAmount);
+
+        // Claim gift to recipient
+        vm.prank(giftRecipient);
+        giftedBox.claimGift(giftedBoxTokenId, GiftingRole.RECIPIENT);
+
+        // Prepare batch transfer data
+        bytes[] memory batchData = new bytes[](4);
+        batchData[0] = abi.encodeWithSignature(
+            "transferERC20(address,uint256,address,address,uint256)",
+            address(mockERC20),
+            erc20Amount,
+            tokenRecipient,
+            giftRecipient,
+            block.timestamp + 1 days
+        );
+        batchData[1] = abi.encodeWithSignature(
+            "transferERC721(address,uint256,address,address,uint256)",
+            address(mockERC721),
+            erc721TokenId,
+            tokenRecipient,
+            giftRecipient,
+            block.timestamp + 1 days
+        );
+        batchData[2] = abi.encodeWithSignature(
+            "transferERC1155(address,uint256,uint256,address,address,uint256)",
+            address(mockERC1155),
+            erc1155TokenId,
+            erc1155Amount,
+            tokenRecipient,
+            giftRecipient,
+            block.timestamp + 1 days
+        );
+        batchData[3] = abi.encodeWithSignature(
+            "transferEther(address,uint256,address,uint256)",
+            payable(tokenRecipient),
+            etherAmount,
+            giftRecipient,
+            block.timestamp + 1 days
+        );
+
+        // Generate batch transfer permit message
+        string memory permitMessage = giftedBox.batchTransferPermitMessage(
+            giftedBoxTokenId,
+            batchData,
+            block.timestamp + 1 days
+        );
+
+        // Sign permit message
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            2, // giftRecipient's private key
+            tokenAccount.hashPersonalSignedMessage(bytes(permitMessage))
+        );
+
+        // Execute batch transfer
+        vm.prank(giftSender);
+        giftedBox.batchTransfer(
+            giftedBoxTokenId,
+            batchData,
+            block.timestamp + 1 days,
+            v,
+            r,
+            s
+        );
+
+        // Verify transfers
+        assertEq(mockERC20.balanceOf(tokenRecipient), erc20Amount);
+        assertEq(mockERC721.ownerOf(erc721TokenId), tokenRecipient);
+        assertEq(
+            mockERC1155.balanceOf(tokenRecipient, erc1155TokenId),
+            erc1155Amount
+        );
+        assertEq(tokenRecipient.balance, etherAmount);
+
+        // Verify token-bound account balances
+        assertEq(mockERC20.balanceOf(address(tokenAccount)), 0);
+        assertEq(mockERC721.balanceOf(address(tokenAccount)), 0);
+        assertEq(
+            mockERC1155.balanceOf(address(tokenAccount), erc1155TokenId),
+            0
+        );
+        assertEq(address(tokenAccount).balance, 0);
+    }
 }
