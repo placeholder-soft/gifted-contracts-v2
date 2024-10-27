@@ -6,7 +6,6 @@ import "./IGiftedAccountGuardian.sol";
 interface IGiftedAccount {
     function isOwner(address caller) external view returns (bool);
     function getGuardian() external view returns (IGiftedAccountGuardian);
-
     function setAccountGuardian(address guardian) external;
 
     function getTransferERC721PermitMessage(
@@ -39,6 +38,51 @@ interface IGiftedAccount {
         uint256 tokenId,
         uint256 amount,
         address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function getTransferERC20PermitMessage(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function transferERC20(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function getTransferEtherPermitMessage(
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function transferEther(
+        address payable to,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    function getBatchTransferPermitMessage(
+        bytes[] calldata data,
+        uint256 deadline
+    ) external view returns (string memory);
+
+    function batchTransfer(
+        bytes[] calldata data,
         uint256 deadline,
         uint8 v,
         bytes32 r,

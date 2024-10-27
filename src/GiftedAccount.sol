@@ -18,6 +18,8 @@ import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IGiftedBox.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/utils/cryptography/ECDSA.sol";
 
 error UntrustedImplementation();
 error NotAuthorized();
@@ -110,6 +112,36 @@ contract GiftedAccount is
         uint256 nonce,
         address signer,
         address relayer
+    );
+
+    event TransferERC20Permit(
+        address indexed from,
+        address indexed to,
+        address indexed tokenContract,
+        uint256 amount,
+        uint256 deadline,
+        uint256 nonce,
+        address signer,
+        address relayer
+    );
+
+    // Add this new event
+    event TransferEtherPermit(
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        uint256 deadline,
+        uint256 nonce,
+        address signer,
+        address relayer
+    );
+
+    // Add this new event
+    event BatchTransferPermit(
+        address indexed signer,
+        bytes[] data,
+        uint256 deadline,
+        uint256 nonce
     );
     // endregion Events
 
@@ -469,23 +501,13 @@ contract GiftedAccount is
         address tokenContract,
         uint256 tokenId,
         address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
+        address signer,
+        uint256 deadline
+    ) public {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        string memory message = getTransferERC721PermitMessage(
-            tokenContract,
-            tokenId,
-            to,
-            deadline
-        );
-        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
-
-        address signer = _recover(signHash, v, r, s);
-        require(signer == owner(), "!transfer-permit-invalid-signature");
-
+        require(msg.sender == address(this), "!sender-not-authorized");
+        require(to != address(0), "!zero-recipient");
+        require(to != address(this), "!self-recipient");
         IERC721(tokenContract).safeTransferFrom(address(this), to, tokenId);
         emit TransferERC721Permit(
             address(this),
@@ -497,6 +519,40 @@ contract GiftedAccount is
             signer,
             msg.sender
         );
+    }
+
+    function transferERC721(
+        address tokenContract,
+        uint256 tokenId,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        string memory message = getTransferERC721PermitMessage(
+            tokenContract,
+            tokenId,
+            to,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = _recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+
+        _incrementNonce();
+        (bool success, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferERC721(address,uint256,address,address,uint256)",
+                tokenContract,
+                tokenId,
+                to,
+                signer,
+                deadline
+            )
+        );
+        require(success, "ERC721 transfer failed");
     }
 
     function getTransferERC721PermitMessage(
@@ -530,29 +586,18 @@ contract GiftedAccount is
             );
     }
 
-    // Method to transfer ERC1155 tokens with a permit
     function transferERC1155(
         address tokenContract,
         uint256 tokenId,
         uint256 amount,
         address to,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
+        address signer,
+        uint256 deadline
+    ) public {
         require(block.timestamp <= deadline, "!call-permit-expired");
-        string memory message = getTransferERC1155PermitMessage(
-            tokenContract,
-            tokenId,
-            amount,
-            to,
-            deadline
-        );
-        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
-
-        address signer = ECDSA.recover(signHash, v, r, s);
-        require(signer == owner(), "!transfer-permit-invalid-signature");
+        require(msg.sender == address(this), "!sender-not-authorized");
+        require(to != address(0), "!zero-recipient");
+        require(to != address(this), "!self-recipient");
 
         IERC1155(tokenContract).safeTransferFrom(
             address(this),
@@ -574,7 +619,43 @@ contract GiftedAccount is
         );
     }
 
-    // Method to create a message for ERC1155 token transfer with a permit
+    function transferERC1155(
+        address tokenContract,
+        uint256 tokenId,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        string memory message = getTransferERC1155PermitMessage(
+            tokenContract,
+            tokenId,
+            amount,
+            to,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = ECDSA.recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+
+        _incrementNonce();
+        (bool success, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferERC1155(address,uint256,uint256,address,address,uint256)",
+                tokenContract,
+                tokenId,
+                amount,
+                to,
+                signer,
+                deadline
+            )
+        );
+        require(success, "ERC1155 transfer failed");
+    }
+
     function getTransferERC1155PermitMessage(
         address tokenContract,
         uint256 tokenId,
@@ -616,5 +697,251 @@ contract GiftedAccount is
                 _msg
             )
         );
+    }
+
+    function transferERC20(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        address signer,
+        uint256 deadline
+    ) public {
+        require(block.timestamp <= deadline, "!call-permit-expired");
+        require(msg.sender == address(this), "!sender-not-authorized");
+        require(to != address(0), "!zero-recipient");
+        require(to != address(this), "!self-recipient");
+
+        IERC20(tokenContract).transfer(to, amount);
+        emit TransferERC20Permit(
+            address(this),
+            to,
+            tokenContract,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
+    function transferERC20(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        string memory message = getTransferERC20PermitMessage(
+            tokenContract,
+            amount,
+            to,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = _recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+
+        _incrementNonce();
+
+        (bool success, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferERC20(address,uint256,address,address,uint256)",
+                tokenContract,
+                amount,
+                to,
+                signer,
+                deadline
+            )
+        );
+        require(success, "ERC20 transfer failed");
+    }
+
+    function getTransferERC20PermitMessage(
+        address tokenContract,
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string.concat(
+                "I authorize the transfer of ERC20 tokens",
+                "\n Token Contract: ",
+                Strings.toHexString(uint256(uint160(tokenContract)), 20),
+                "\n Amount: ",
+                Strings.toString(amount),
+                "\n To: ",
+                Strings.toHexString(uint256(uint160(to)), 20),
+                "\n Deadline: ",
+                Strings.toString(deadline),
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.2"
+            );
+    }
+
+    function transferEther(
+        address payable to,
+        uint256 amount,
+        address signer,
+        uint256 deadline
+    ) public {
+        require(block.timestamp <= deadline, "!call-permit-expired");
+        require(msg.sender == address(this), "!sender-not-authorized");
+        require(address(this).balance >= amount, "!insufficient-balance");
+        require(to != address(0), "!zero-recipient");
+        require(to != address(this), "!self-recipient");
+        to.transfer(amount);
+        emit TransferEtherPermit(
+            address(this),
+            to,
+            amount,
+            deadline,
+            nonce(),
+            signer,
+            msg.sender
+        );
+    }
+
+    function transferEther(
+        address payable to,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(block.timestamp <= deadline, "!call-permit-expired");
+        string memory message = getTransferEtherPermitMessage(
+            amount,
+            to,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = _recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+        _incrementNonce();
+
+        (bool success, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferEther(address,uint256,address,uint256)",
+                to,
+                amount,
+                signer,
+                deadline
+            )
+        );
+        require(success, "Ether transfer failed");
+    }
+
+    function getTransferEtherPermitMessage(
+        uint256 amount,
+        address to,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string.concat(
+                "I authorize the transfer of Ether",
+                "\n Amount: ",
+                Strings.toString(amount),
+                "\n To: ",
+                Strings.toHexString(uint256(uint160(to)), 20),
+                "\n Deadline: ",
+                Strings.toString(deadline),
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.2"
+            );
+    }
+
+    function batchTransfer(
+        bytes[] calldata data,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(block.timestamp <= deadline, "!batch-transfer-permit-expired");
+        string memory message = getBatchTransferPermitMessage(data, deadline);
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = ECDSA.recover(signHash, v, r, s);
+        require(signer == owner(), "!batch-transfer-permit-invalid-signature");
+
+        _incrementNonce();
+
+        for (uint i = 0; i < data.length; i++) {
+            (bool success, ) = address(this).call(data[i]);
+            require(success, "Batch transfer failed");
+        }
+
+        emit BatchTransferPermit(signer, data, deadline, nonce());
+    }
+
+    function getBatchTransferPermitMessage(
+        bytes[] calldata data,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string(
+                abi.encodePacked(
+                    "I authorize the batch transfer of tokens",
+                    "\n Deadline: ",
+                    Strings.toString(deadline),
+                    "\n Nonce: ",
+                    Strings.toString(nonce()),
+                    "\n Chain ID: ",
+                    Strings.toString(block.chainid),
+                    "\n BY: ",
+                    name(),
+                    "\n Version: ",
+                    "0.0.3",
+                    "\n Data: ",
+                    _bytesArrayToString(data)
+                )
+            );
+    }
+
+    function _bytesArrayToString(
+        bytes[] memory data
+    ) internal pure returns (string memory) {
+        bytes memory result;
+        for (uint i = 0; i < data.length; i++) {
+            bytes memory hexString;
+            if (data[i].length > 32) {
+                bytes32 hash = keccak256(data[i]);
+                hexString = abi.encodePacked("0x", _toHexString(hash));
+            } else {
+                hexString = abi.encodePacked("0x", _toHexString(bytes32(data[i])));
+            }
+            result = abi.encodePacked(result, hexString);
+            if (i < data.length - 1) {
+                result = abi.encodePacked(result, ",");
+            }
+        }
+        return string(result);
+    }
+
+    function _toHexString(bytes32 value) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(64);
+        for (uint256 i = 0; i < 32; i++) {
+            str[i*2] = alphabet[uint8(value[i] >> 4)];
+            str[1+i*2] = alphabet[uint8(value[i] & 0x0f)];
+        }
+        return string(str);
     }
 }
