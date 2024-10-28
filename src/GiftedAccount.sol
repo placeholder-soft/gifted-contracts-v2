@@ -171,6 +171,21 @@ contract GiftedAccount is
         return call(to, value, data);
     }
 
+    function executeCalls(
+        address[] calldata to,
+        uint256[] calldata value,
+        bytes[] calldata data
+    ) external payable onlyAuthorized returns (bytes[] memory results) {
+        require(to.length == value.length && value.length == data.length, "!length-mismatch");
+        results = new bytes[](to.length);
+
+        for (uint256 i = 0; i < to.length; i++) {
+            results[i] = call(to[i], value[i], data[i]);
+        }
+        
+        return results;
+    }
+
     function token() public view returns (uint256, address, uint256) {
         return ERC6551AccountLib.token();
     }

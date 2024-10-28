@@ -17,9 +17,9 @@ contract UpgradeGiftedBox is Script {
         address deployer = getAddressFromConfig("deployer");
         vm.startBroadcast(deployer);
 
-        address newGiftedBoxImplementation = deploy_new_gifted_box();
-        upgrade_gifted_box(newGiftedBoxImplementation);
-        set_new_gifted_box_address(newGiftedBoxImplementation);
+        // address newGiftedBoxImplementation = deploy_new_gifted_box();
+        // upgrade_gifted_box(newGiftedBoxImplementation);
+        // set_new_gifted_box_address(newGiftedBoxImplementation);
 
         address newGiftedAccountImplementation = deploy_new_gifted_account();
         set_new_gifted_account_address(newGiftedAccountImplementation);
