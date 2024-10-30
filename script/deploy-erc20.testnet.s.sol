@@ -35,22 +35,22 @@ contract DeployMockERC20Sepolia is Script {
         mockWBTC = new MockERC20(deployer, "Wrapped BTC", "WBTC");
         mintToAll(mockWBTC, 10 ether); // WBTC typically has 8 decimals
 
-        // Update UnifiedStore with new token addresses
-        address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
-        unifiedStore = UnifiedStore(unifiedStoreAddress);
-        string[] memory keys = new string[](3);
-        address[] memory addresses = new address[](3);
+        // // Update UnifiedStore with new token addresses
+        // address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
+        // unifiedStore = UnifiedStore(unifiedStoreAddress);
+        // string[] memory keys = new string[](3);
+        // address[] memory addresses = new address[](3);
 
-        keys[0] = "TOKEN_USDT";
-        addresses[0] = address(mockUSDT);
+        // keys[0] = "TOKEN_USDT";
+        // addresses[0] = address(mockUSDT);
 
-        keys[1] = "TOKEN_USDC";
-        addresses[1] = address(mockUSDC);
+        // keys[1] = "TOKEN_USDC";
+        // addresses[1] = address(mockUSDC);
 
-        keys[2] = "TOKEN_WBTC";
-        addresses[2] = address(mockWBTC);
+        // keys[2] = "TOKEN_WBTC";
+        // addresses[2] = address(mockWBTC);
 
-        unifiedStore.setAddresses(keys, addresses);
+        // unifiedStore.setAddresses(keys, addresses);
 
         vm.stopBroadcast();
 

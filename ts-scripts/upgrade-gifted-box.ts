@@ -15,9 +15,9 @@ const colors = [
 const resetColor = "\x1b[0m";
 
 const networks = [
-  // "base_sepolia",
-  // "sepolia",
-  // "arbitrum_sepolia",
+  "base_sepolia",
+  "sepolia",
+  "arbitrum_sepolia",
   "plume_testnet",
   // "abstract_testnet",
   // Add other networks as needed

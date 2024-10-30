@@ -15,10 +15,11 @@ const colors = [
 const resetColor = "\x1b[0m";
 
 const networks = [
-  "sepolia",
-  "base_sepolia",
-  "arbitrum_sepolia",
-  "zora_sepolia",
+//   "sepolia",
+//   "base_sepolia",
+//   "arbitrum_sepolia",
+//   "zora_sepolia",
+  "plume_testnet",
   // Add other networks here as needed
 ] as const;
 

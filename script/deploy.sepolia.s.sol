@@ -26,80 +26,29 @@ contract DeploySepolia is Script {
     NFTVault public nftVault;
     GasSponsorBook public sponsorBook;
     UnifiedStore public unifiedStore;
+    address internal giftedBoxImplementation;
 
     address public gasRelayer =
         address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
     address public deployer =
         address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
 
+    uint256 internal currentChainId;
+
     function run() public {
+        // Get current chain ID
+        currentChainId = block.chainid;
+        console.log("Deploying to chain ID:", currentChainId);
+        
         deploy_contracts();
-        deploy_artwork();
+        // deploy_artwork();
+        
     }
 
     function deploy_test() internal {
         vm.startBroadcast(deployer);
         unifiedStore = new UnifiedStore();
         vm.stopBroadcast(); 
-    }
-
-    function set_sponsor_ticket() internal {
-        vm.startBroadcast(deployer);
-
-        sponsorBook = GasSponsorBook(
-            address(0x11d0E669D24F682F7690fDf5407B20287050a74A)
-        );
-
-        sponsorBook.setFeePerSponsorTicket(0.000001 ether);
-
-        vm.stopBroadcast();
-    }
-
-    function deploy_UnifiedStore() internal {
-        vm.startBroadcast(deployer);
-        unifiedStore = new UnifiedStore();
-
-        string[] memory keys = new string[](6);
-        address[] memory addresses = new address[](6);
-        keys[0] = "GiftedAccountGuardian";
-        addresses[0] = address(0x40Dba44E7d95affF4BC8afa349393f26c8f61da6);
-
-        keys[1] = "GiftedAccount";
-        addresses[1] = address(0xeDc1452817e8bDAe482D6D026c07C77f2053b693);
-
-        keys[2] = "GiftedBox";
-        addresses[2] = address(0x384C26db13269BB3215482F9B932371e4803B29f);
-
-        keys[3] = "Vault";
-        addresses[3] = address(0x95c566AB7A776314424364D1e2476399167b916c);
-
-        keys[4] = "GasSponsorBook";
-        addresses[4] = address(0xa80F5B8d1126D7A2eB1cE271483cF70bBb4e6e0A);
-
-        keys[5] = "ERC6551Registry";
-        addresses[5] = address(0x1ffdaf9a2561c0CbCC13F3fca6381A0E060Af66E);
-
-        for (uint i = 0; i < addresses.length; i++) {
-            uint32 size;
-            address addr = addresses[i];
-            assembly {
-                size := extcodesize(addr)
-            }
-            require(
-                size > 0,
-                string(
-                    abi.encodePacked(
-                        "Address ",
-                        keys[i],
-                        " does not contain code"
-                    )
-                )
-            );
-        }
-
-        unifiedStore.setAddresses(keys, addresses);
-
-        vm.stopBroadcast();
     }
 
     function deploy_artwork() internal {
@@ -114,21 +63,43 @@ contract DeploySepolia is Script {
 
     function deploy_contracts() internal {
         vm.startBroadcast(deployer);
+        
+        // Add validation for deployer address
+        require(deployer != address(0), "Deployer address cannot be zero");
+        console.log("Deploying contracts with deployer:", deployer);
+        
+        // Deploy guardian and log
         guardian = new GiftedAccountGuardian();
+        console.log("GiftedAccountGuardian deployed at:", address(guardian));
+        
+        // Deploy and set implementation
         GiftedAccount giftedAccountImpl = new GiftedAccount();
+        console.log("GiftedAccount implementation deployed at:", address(giftedAccountImpl));
+        
+        require(address(guardian) != address(0), "Guardian deployment failed");
         guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
 
+        // Deploy proxy with validation
         GiftedAccountProxy accountProxy = new GiftedAccountProxy(
             address(guardian)
         );
+        require(address(accountProxy) != address(0), "Proxy deployment failed");
         giftedAccount = GiftedAccount(payable(address(accountProxy)));
+        console.log("GiftedAccount proxy deployed at:", address(giftedAccount));
 
+        // Continue with rest of deployments with logging
         registry = new ERC6551Registry();
+        console.log("ERC6551Registry deployed at:", address(registry));
 
-        address implementation = address(new GiftedBox());
+        giftedBoxImplementation = address(new GiftedBox());
+        console.log("GiftedBox implementation deployed at:", giftedBoxImplementation);
+        
+        require(giftedBoxImplementation != address(0), "GiftedBox implementation deployment failed");
         bytes memory data = abi.encodeCall(GiftedBox.initialize, deployer);
-        address proxy = address(new ERC1967Proxy(implementation, data));
+        address proxy = address(new ERC1967Proxy(giftedBoxImplementation, data));
+        require(proxy != address(0), "GiftedBox proxy deployment failed");
         giftedBox = GiftedBox(proxy);
+        console.log("GiftedBox proxy deployed at:", address(giftedBox));
 
         giftedBox.setAccountImpl(payable(address(giftedAccount)));
         giftedBox.setRegistry(address(registry));
