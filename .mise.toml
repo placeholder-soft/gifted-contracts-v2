@@ -1,0 +1,8 @@
+[tools]
+# foundry = "nightly-5902a6fa87600cf0cbe44e689c97479c16fd474e"
+foundry-zksync = "nightly-883034d4851db9d58a91d54953aeb62c60890243"
+pnpm = "9.8.0"
+nodejs = "22.7.0"
+
+[plugins]
+foundry-zksync = "https://github.com/placeholder-soft/foundry-zksync.git"

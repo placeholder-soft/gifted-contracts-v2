@@ -813,7 +813,8 @@ contract GiftedAccount is
         require(address(this).balance >= amount, "!insufficient-balance");
         require(to != address(0), "!zero-recipient");
         require(to != address(this), "!self-recipient");
-        to.transfer(amount);
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "Transfer failed");
         emit TransferEtherPermit(
             address(this),
             to,
