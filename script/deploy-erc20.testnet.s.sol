@@ -33,7 +33,7 @@ contract DeployMockERC20Sepolia is Script {
 
         // Deploy MockWBTC
         mockWBTC = new MockERC20(deployer, "Wrapped BTC", "WBTC");
-        mintToAll(mockWBTC, 10 ether); // WBTC typically has 8 decimals
+        mintToAll(mockWBTC, 10000 ether); // WBTC typically has 8 decimals
 
         // // Update UnifiedStore with new token addresses
         // address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
