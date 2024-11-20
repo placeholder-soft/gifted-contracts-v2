@@ -12,11 +12,9 @@ var_value=$(printf '%s' "$var_value")
 
 # Check if .env file exists and contains the specified variable
 if grep -q "$var_name=" .env.override; then
-    # Replace the existing variable value (handles both macOS and GNU sed)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s/$var_name=.*/$var_name=$var_value/" $ENV_FILE
-    else
-        sed -i "s/$var_name=.*/$var_name=$var_value/" $ENV_FILE
+    # Try GNU sed style first, fall back to BSD sed if it fails
+    if ! sed -i "s/$var_name=.*/$var_name=$var_value/" "$ENV_FILE" 2>/dev/null; then
+        sed -i '' "s/$var_name=.*/$var_name=$var_value/" "$ENV_FILE"
     fi
 else
     # Add the variable to the .env file

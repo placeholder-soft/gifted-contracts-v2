@@ -30,7 +30,9 @@ contract UpgradeGiftedBox is Script {
         console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
 
         address manager = getAddressFromConfig("manager");
-        guardian.setExecutor(manager, true);
+        if (!guardian.isExecutor(manager)) {
+            guardian.setExecutor(manager, true);
+        }
 
         vm.stopBroadcast();
     }
