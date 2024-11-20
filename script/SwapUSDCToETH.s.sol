@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/interfaces/ISwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SwapUSDCToETHScript is Script {
@@ -10,10 +10,11 @@ contract SwapUSDCToETHScript is Script {
     address constant SWAP_ROUTER = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
     uint24 constant POOL_FEE = 500; // 0.05%
+    address public deployer;
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
+        deployer = getAddressFromConfig("deployer");
+        vm.startBroadcast(deployer);
 
         // Get the SwapRouter contract
         ISwapRouter router = ISwapRouter(SWAP_ROUTER);
