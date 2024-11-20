@@ -5,4 +5,5 @@ forge-std/=lib/forge-std/src/
 @openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 erc6551/=lib/reference/src
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
-@uniswap/v3-periphery/=lib/v3-periphery/contracts
+@uniswap/v3-periphery/=lib/v3-periphery/
+@uniswap/v3-core/=lib/v3-core/
