@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol";
+import "@uniswap/swap-router/interfaces/IV3SwapRouter.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SwapUSDCToETHScript is Script {
@@ -20,7 +20,7 @@ contract SwapUSDCToETHScript is Script {
         vm.startBroadcast(deployer);
 
         // Get the SwapRouter contract
-        ISwapRouter router = ISwapRouter(SWAP_ROUTER);
+        IV3SwapRouter router = IV3SwapRouter(SWAP_ROUTER);
         
         // Amount of USDC to swap (with 6 decimals)
         uint256 amountIn = 1 * 1e6; // 1 USDC - starting with a smaller amount
@@ -34,7 +34,7 @@ contract SwapUSDCToETHScript is Script {
         IERC20(USDC).approve(SWAP_ROUTER, amountIn);
 
         // Prepare the parameters for the swap
-        ISwapRouter.ExactInputSingleParams memory params = IV3SwapRouter
+        IV3SwapRouter.ExactInputSingleParams memory params = IV3SwapRouter
             .ExactInputSingleParams({
                 tokenIn: USDC,
                 tokenOut: WETH9,

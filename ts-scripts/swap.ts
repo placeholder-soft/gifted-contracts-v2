@@ -33,6 +33,36 @@ const SWAP_ROUTER_ABI = [
   },
 ];
 
+// ABI for WETH9 (only the functions we need)
+const WETH_ABI = [
+  {
+    inputs: [
+      { name: "wad", type: "uint256" },
+    ],
+    name: "withdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  }
+];
+
 async function main() {
   // Create Viem clients
   const publicClient = createPublicClient({
@@ -52,7 +82,7 @@ async function main() {
   });
 
   // Amount of USDC to swap (with 6 decimals)
-  const amountIn = 1000000n; // 1 USDC
+  const amountIn = BigInt(10000e6);
 
   // Prepare swap parameters
   const params = {
@@ -60,64 +90,117 @@ async function main() {
     tokenOut: WETH9,
     fee: POOL_FEE,
     recipient: account.address,
-    // deadline: BigInt(Math.floor(Date.now() / 1000) + 10000), // 10000 seconds from now
     amountIn,
     amountOutMinimum: 0n, // In production, use an oracle for slippage protection
     sqrtPriceLimitX96: 0n,
   };
 
   try {
-    // // First, approve USDC spending
-    // console.log("Approving USDC...");
-    // const { request: approvalRequest } = await publicClient.simulateContract({
-    //   address: USDC,
-    //   abi: [
-    //     {
-    //       inputs: [
-    //         { name: "spender", type: "address" },
-    //         { name: "amount", type: "uint256" },
-    //       ],
-    //       name: "approve",
-    //       outputs: [{ name: "", type: "bool" }],
-    //       stateMutability: "nonpayable",
-    //       type: "function",
-    //     },
-    //   ],
-    //   functionName: "approve",
-    //   args: [SWAP_ROUTER, amountIn],
-    //   account,
-    // });
+    // First, check current allowance
+    console.log("Checking USDC allowance...");
+    console.log(`Owner address: ${account.address}`);
+    console.log(`Spender address (SwapRouter): ${SWAP_ROUTER}`);
+    const currentAllowance = await publicClient.readContract({
+      address: USDC,
+      abi: [
+        {
+          inputs: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+          ],
+          name: "allowance",
+          outputs: [{ name: "", type: "uint256" }],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      functionName: "allowance",
+      args: [account.address, SWAP_ROUTER],
+    });
 
-    // const approvalHash = await walletClient.writeContract(approvalRequest);
-    // console.log("Approval transaction hash:", approvalHash);
+    console.log(`Current allowance: ${currentAllowance} USDC wei`);
+    console.log(`Required amount: ${amountIn} USDC wei`);
 
-    // // Wait for approval to be mined
-    // await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+    // Only approve if current allowance is less than required amount
+    if (currentAllowance < amountIn) {
+      console.log("\nCurrent allowance is insufficient. Initiating approval...");
+      console.log("Approving USDC...");
+      const { request: approvalRequest } = await publicClient.simulateContract({
+        address: USDC,
+        abi: [
+          {
+            inputs: [
+              { name: "spender", type: "address" },
+              { name: "amount", type: "uint256" },
+            ],
+            name: "approve",
+            outputs: [{ name: "", type: "bool" }],
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+        ],
+        functionName: "approve",
+        args: [SWAP_ROUTER, 10000000000000000000000000000000n],
+        account,
+      });
+
+      const approvalHash = await walletClient.writeContract(approvalRequest);
+      console.log("Approval transaction hash:", approvalHash);
+
+      // Wait for approval to be mined
+      await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+    }
 
     // Execute the swap
     console.log("Executing swap...");
-    // const { request } = await publicClient.simulateContract({
-    //   address: SWAP_ROUTER,
-    //   abi: SWAP_ROUTER_ABI,
-    //   functionName: "exactInputSingle",
-    //   args: [params],
-    //   account,
-    // });
-
-    const hash = await walletClient.writeContract({
+    const { request } = await publicClient.simulateContract({
       address: SWAP_ROUTER,
       abi: SWAP_ROUTER_ABI,
       functionName: "exactInputSingle",
       args: [params],
       account,
-      gas: 1000000n
     });
+
+    const hash = await walletClient.writeContract(request);
     console.log("Swap transaction hash:", hash);
 
     // Wait for the swap transaction to be mined
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log("Swap completed!");
-    console.log(`Swapped ${amountIn} USDC for ETH`);
+    console.log(`Swapped ${amountIn} USDC for WETH`);
+
+    // Query WETH balance before unwrapping
+    console.log("Checking WETH balance...");
+    const wethBalance = (await publicClient.readContract({
+      address: WETH9,
+      abi: WETH_ABI,
+      functionName: "balanceOf",
+      args: [account.address],
+    })) as bigint;
+
+    console.log(`Current WETH balance: ${wethBalance} wei`);
+
+    if (wethBalance > 0n) {
+      // Unwrap WETH to ETH
+      console.log("Unwrapping WETH to ETH...");
+      const { request: unwrapRequest } = await publicClient.simulateContract({
+        address: WETH9,
+        abi: WETH_ABI,
+        functionName: "withdraw",
+        args: [wethBalance],
+        account,
+      });
+
+      const unwrapHash = await walletClient.writeContract(unwrapRequest);
+      console.log("Unwrap transaction hash:", unwrapHash);
+
+      // Wait for the unwrap transaction to be mined
+      const unwrapReceipt = await publicClient.waitForTransactionReceipt({ hash: unwrapHash });
+      console.log("Successfully unwrapped WETH to ETH!");
+      console.log(`Unwrapped amount: ${wethBalance} wei`);
+    } else {
+      console.log("No WETH balance to unwrap");
+    }
   } catch (error) {
     console.error("Error executing swap:", error);
   }

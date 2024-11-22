@@ -7,3 +7,4 @@ erc6551/=lib/reference/src
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
 @uniswap/v3-periphery/=lib/v3-periphery/
 @uniswap/v3-core/=lib/v3-core/
+@uniswap/swap-router/=lib/swap-router-contracts/contracts/
