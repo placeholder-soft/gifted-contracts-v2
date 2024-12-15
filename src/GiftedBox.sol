@@ -28,12 +28,15 @@ contract GiftedBox is
     UUPSUpgradeable
 {
     using Address for address payable;
-    // region defines
+
+    // region Constants
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
+    // endregion
 
+    // region Events
     event GiftedBoxSentToVault(
         address indexed from,
         address indexed to,
@@ -54,7 +57,6 @@ contract GiftedBox is
         address recipient,
         address operator
     );
-
     event AccountImplUpdated(address indexed newAccountImpl);
     event RegistryUpdated(address indexed newRegistry);
     event GuardianUpdated(address indexed newGuardian);
@@ -105,7 +107,7 @@ contract GiftedBox is
     );
     // endregion
 
-    // region storage
+    // region Storage
     uint256 private _nextTokenId;
     mapping(uint256 => GiftingRecord) public giftingRecords;
     GiftedAccount public accountImpl;
@@ -116,7 +118,7 @@ contract GiftedBox is
 
     // endregion
 
-    // region initializer
+    // region Constructor & Initializer
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -136,6 +138,9 @@ contract GiftedBox is
         _grantRole(CLAIMER_ROLE, defaultAdmin);
     }
 
+    // endregion
+
+    // region Admin Functions
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
@@ -148,35 +153,6 @@ contract GiftedBox is
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
-    // endregion
-
-    // region overrides
-    function _update(
-        address to,
-        uint256 tokenId,
-        address auth
-    )
-        internal
-        override(ERC721Upgradeable, ERC721PausableUpgradeable)
-        returns (address)
-    {
-        return super._update(to, tokenId, auth);
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        override(ERC721Upgradeable, AccessControlUpgradeable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
-
-    // endregion
-
-    // region config setter
     function setAccountImpl(
         address payable newAccountImpl
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -212,7 +188,33 @@ contract GiftedBox is
 
     // endregion
 
-    // region view
+    // region Core ERC721 Functions
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    )
+        internal
+        override(ERC721Upgradeable, ERC721PausableUpgradeable)
+        returns (address)
+    {
+        return super._update(to, tokenId, auth);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        override(ERC721Upgradeable, AccessControlUpgradeable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
+    // endregion
+
+    // region View Functions
     function tokenAccountAddress(
         uint256 tokenId
     ) public view returns (address) {
@@ -236,9 +238,33 @@ contract GiftedBox is
         return giftingRecords[tokenId];
     }
 
+    /**
+     * @dev Checks if a given GiftedBox has a sponsor ticket.
+     * @param tokenId The ID of the GiftedBox.
+     * @return A boolean indicating whether the GiftedBox has a sponsor ticket or not.
+     */
+    function sponsorTickets(uint256 tokenId) public view returns (uint256) {
+        if (address(gasSponsorBook) == address(0)) {
+            return 0;
+        }
+        address tokenAccount = registry.account(
+            address(accountImpl),
+            block.chainid,
+            address(this),
+            tokenId,
+            0
+        );
+        uint256 ticket = generateTicketID(tokenAccount);
+        return gasSponsorBook.sponsorTickets(ticket);
+    }
+
+    function feePerSponsorTicket() public view returns (uint256) {
+        return gasSponsorBook.feePerSponsorTicket();
+    }
+
     // endregion
 
-    // region internal functions
+    // region Internal Functions
     function createAccountIfNeeded(
         uint256 tokenId,
         address tokenAccount
@@ -258,9 +284,6 @@ contract GiftedBox is
         }
     }
 
-    // endregion
-
-    // region gas sponsorship
     function handleSponsorshipAndTransfer(
         address tokenAccount,
         uint256 tokenId,
@@ -293,7 +316,10 @@ contract GiftedBox is
         }
     }
 
-    /**
+    // endregion
+
+    // region Gas Sponsorship
+     /**
      * Adds a sponsor ticket for the given account and token ID, paying the sponsor ticket fee.
      * A sponsor ticket allows the account holder to sponsor a gas refund for transfers of the token ID.
      * The sponsor ticket ID is generated and stored in the gas sponsor book along with the sponsor funds.
@@ -309,34 +335,9 @@ contract GiftedBox is
         emit SponsorTicketAdded(account, ticket, msg.value);
     }
 
-    /**
-     * @dev Checks if a given NFT token has a sponsor ticket.
-     * @param tokenId The ID of the NFT token.
-     * @return A boolean indicating whether the NFT token has a sponsor ticket or not.
-     */
-    function sponsorTickets(uint256 tokenId) public view returns (uint256) {
-        if (address(gasSponsorBook) == address(0)) {
-            return 0;
-        }
-        address tokenAccount = registry.account(
-            address(accountImpl),
-            block.chainid,
-            address(this),
-            tokenId,
-            0
-        );
-        uint256 ticket = generateTicketID(tokenAccount);
-        return gasSponsorBook.sponsorTickets(ticket);
-    }
-
-    function feePerSponsorTicket() public view returns (uint256) {
-        return gasSponsorBook.feePerSponsorTicket();
-    }
-
     // endregion
 
-    // region Gifting Actions
-
+    // region Gifting Core
     /**
      * @notice Sends a gift to the specified recipient.
      * @dev Mints a new token, updates the gifting records, and emits an event.
@@ -468,9 +469,9 @@ contract GiftedBox is
         claimGiftByClaimer(tokenId, role);
     }
 
-    // endregion Gifting Actions
+    // endregion Gifting Core
 
-    // region Forward Methods
+    // region Token Transfers
     function transferERC721PermitMessage(
         uint256 giftedBoxTokenId,
         address tokenContract,
@@ -734,6 +735,9 @@ contract GiftedBox is
             s
         );
     }
+    // endregion Token Transfers
+
+    // region Batch Transfers
 
     function batchTransferPermitMessage(
         uint256 giftedBoxTokenId,
@@ -780,16 +784,21 @@ contract GiftedBox is
         IGiftedAccount(tokenAccount).batchTransfer(data, deadline, v, r, s);
     }
 
+    // endregion
+
+    // region Token Conversions
     function quoteUSDCToETH(
         uint256 giftedBoxTokenId,
         uint256 percent
-    ) external view returns (
-            uint256 expectedOutput,
-            uint256 amountIn,
-            uint256 amountNoSwap
-        ) {
+    )
+        external
+        view
+        returns (uint256 expectedOutput, uint256 amountIn, uint256 amountNoSwap)
+    {
         address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
-        (expectedOutput, amountIn, amountNoSwap) = IGiftedAccount(payable(tokenAccount)).quoteUSDCToETH(percent);
+        (expectedOutput, amountIn, amountNoSwap) = IGiftedAccount(
+            payable(tokenAccount)
+        ).quoteUSDCToETH(percent);
     }
 
     function convertUSDCToETHAndSendPermitMessage(
@@ -799,11 +808,13 @@ contract GiftedBox is
         uint256 deadline
     ) external view returns (string memory) {
         address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
-        return IGiftedAccount(payable(tokenAccount)).getConvertUSDCToETHAndSendPermitMessage(
-            percent,
-            recipient,
-            deadline
-        );
+        return
+            IGiftedAccount(payable(tokenAccount))
+                .getConvertUSDCToETHAndSendPermitMessage(
+                    percent,
+                    recipient,
+                    deadline
+                );
     }
 
     function convertUSDCToETHAndSendSponsor(
@@ -832,6 +843,5 @@ contract GiftedBox is
             s
         );
     }
-
-    // endregion Forward Methods
+    // endregion
 }
