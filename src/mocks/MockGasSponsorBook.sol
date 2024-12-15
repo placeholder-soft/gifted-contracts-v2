@@ -13,15 +13,15 @@ contract MockGasSponsorBook is IGasSponsorBook {
         _vault = vault;
     }
 
-    function setFeePerSponsorTicket(uint256 feePerSponsorTicket) external {
-        _feePerSponsorTicket = feePerSponsorTicket;
+    function setFeePerSponsorTicket(uint256 feePerSponsorTicket_) external {
+        _feePerSponsorTicket = feePerSponsorTicket_;
     }
 
     function addSponsorTicket(uint256 ticket) external payable {
         _sponsorTickets[ticket] = msg.value;
     }
 
-    function consumeSponsorTicket(uint256 ticket, address sponsor) external {
+    function consumeSponsorTicket(uint256 ticket, address) external {
         _sponsorTickets[ticket] = 0;
     }
 
