@@ -1004,7 +1004,7 @@ contract GiftedAccount is
         uint256 amountOutMinimum,
         uint256 deadline
     ) internal returns (uint256 amountOut) {
-        require(msg.sender == owner(), "!not-authorized");
+        require(msg.sender == owner() || msg.sender == address(this), "!not-authorized");
         require(block.timestamp <= deadline, "Transaction too old");
 
         IUnifiedStore store = _guardian.getUnifiedStore();
@@ -1149,14 +1149,23 @@ contract GiftedAccount is
         require(signer == owner(), "!transfer-permit-invalid-signature");
 
         _incrementNonce();
-        (bool success, ) = address(this).call(
+        (bool success, bytes memory returnData) = address(this).call(
             abi.encodeWithSignature(
                 "convertUSDCToETHAndSend(uint256,address)",
                 percent,
                 recipient
             )
         );
-        require(success, "USDC to ETH conversion failed");
+        if (!success) {
+            if (returnData.length > 0) {
+                assembly {
+                    let returnDataSize := mload(returnData)
+                    revert(add(32, returnData), returnDataSize)
+                }
+            } else {
+                revert("!convert-usdc-to-eth-and-send-failed");
+            }
+        }
     }
 
     function getConvertUSDCToETHAndSendPermitMessage(

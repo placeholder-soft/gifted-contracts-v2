@@ -801,7 +801,7 @@ contract GiftedBox is
         ).quoteUSDCToETH(percent);
     }
 
-    function convertUSDCToETHAndSendPermitMessage(
+    function getConvertUSDCToETHAndSendPermitMessage(
         uint256 giftedBoxTokenId,
         uint256 percent,
         address recipient,
