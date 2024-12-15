@@ -113,6 +113,7 @@ contract GiftedBox is
     GiftedAccountGuardian public guardian;
     IGasSponsorBook public gasSponsorBook;
     IVault public vault;
+
     // endregion
 
     // region initializer
@@ -356,8 +357,19 @@ contract GiftedBox is
 
         if (mintingFee > 0) {
             require(address(vault) != address(0), "!vault-not-set");
-            vault.transferIn{value: mintingFee}(address(0), msg.sender, mintingFee);
-            emit MintingFeePaid(msg.sender, sender, recipient, operator, tokenId, mintingFee);
+            vault.transferIn{value: mintingFee}(
+                address(0),
+                msg.sender,
+                mintingFee
+            );
+            emit MintingFeePaid(
+                msg.sender,
+                sender,
+                recipient,
+                operator,
+                tokenId,
+                mintingFee
+            );
         }
 
         giftingRecords[tokenId] = GiftingRecord({
@@ -374,7 +386,11 @@ contract GiftedBox is
             0
         );
         createAccountIfNeeded(tokenId, tokenAccount);
-        handleSponsorshipAndTransfer(tokenAccount, tokenId, msg.value - mintingFee);
+        handleSponsorshipAndTransfer(
+            tokenAccount,
+            tokenId,
+            msg.value - mintingFee
+        );
 
         emit GiftedBoxSentToVault(sender, recipient, operator, tokenId);
     }
@@ -673,12 +689,7 @@ contract GiftedBox is
         IGiftedAccount account = IGiftedAccount(
             tokenAccountAddress(giftedBoxTokenId)
         );
-        return
-            account.getTransferEtherPermitMessage(
-                amount,
-                to,
-                deadline
-            );
+        return account.getTransferEtherPermitMessage(amount, to, deadline);
     }
 
     function transferEther(
@@ -766,8 +777,55 @@ contract GiftedBox is
             "!sponsor-ticket-not-enough"
         );
         gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
-        IGiftedAccount(tokenAccount).batchTransfer(
-            data,
+        IGiftedAccount(tokenAccount).batchTransfer(data, deadline, v, r, s);
+    }
+
+    function quoteUSDCToETH(
+        uint256 giftedBoxTokenId,
+        uint256 percent
+    ) external view returns (
+            uint256 expectedOutput,
+            uint256 amountIn,
+            uint256 amountNoSwap
+        ) {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        (expectedOutput, amountIn, amountNoSwap) = IGiftedAccount(payable(tokenAccount)).quoteUSDCToETH(percent);
+    }
+
+    function convertUSDCToETHAndSendPermitMessage(
+        uint256 giftedBoxTokenId,
+        uint256 percent,
+        address recipient,
+        uint256 deadline
+    ) external view returns (string memory) {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        return IGiftedAccount(payable(tokenAccount)).getConvertUSDCToETHAndSendPermitMessage(
+            percent,
+            recipient,
+            deadline
+        );
+    }
+
+    function convertUSDCToETHAndSendSponsor(
+        uint256 giftedBoxTokenId,
+        uint256 percent,
+        address recipient,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+        uint256 ticketId = generateTicketID(tokenAccount);
+        require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
+        require(
+            sponsorTickets(giftedBoxTokenId) > 0,
+            "!sponsor-ticket-not-enough"
+        );
+        gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
+        IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(
+            percent,
+            recipient,
             deadline,
             v,
             r,
