@@ -8,47 +8,44 @@ import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IUnifiedStore.sol";
 
 contract GiftedAccountGuardian is Ownable2Step, IGiftedAccountGuardian {
-    mapping(address => bool) private _isExecutor;
-    address private _implementation;
-    IUnifiedStore private _unifiedStore;
+  mapping(address => bool) private _isExecutor;
+  address private _implementation;
+  IUnifiedStore private _unifiedStore;
 
-    event UnifiedStoreUpdated(
-        address indexed previousStore,
-        address indexed newStore
-    );
+  event UnifiedStoreUpdated(address indexed previousStore, address indexed newStore);
 
-    constructor() Ownable(msg.sender) {}
+  constructor() Ownable(msg.sender) { }
 
-    function setExecutor(address executor, bool trusted) external onlyOwner {
-        _isExecutor[executor] = trusted;
-        emit ExecutorUpdated(executor, trusted);
-    }
+  function setExecutor(address executor, bool trusted) external onlyOwner {
+    _isExecutor[executor] = trusted;
+    emit ExecutorUpdated(executor, trusted);
+  }
 
-    // @dev set new implementation address
-    // note that we don't call any upgrade initialization function
-    // which leave it to the owner to call it
-    function setGiftedAccountImplementation(address newImplementation) external onlyOwner {
-        require(newImplementation.code.length > 0, "!newImplementation-is-not-a-contract");
-        _implementation = newImplementation;
-        emit Upgraded(newImplementation);
-    }
+  // @dev set new implementation address
+  // note that we don't call any upgrade initialization function
+  // which leave it to the owner to call it
+  function setGiftedAccountImplementation(address newImplementation) external onlyOwner {
+    require(newImplementation.code.length > 0, "!newImplementation-is-not-a-contract");
+    _implementation = newImplementation;
+    emit Upgraded(newImplementation);
+  }
 
-    function getImplementation() external view returns (address) {
-        return _implementation;
-    }
+  function getImplementation() external view returns (address) {
+    return _implementation;
+  }
 
-    function isExecutor(address executor) external view returns (bool) {
-        if (_isExecutor[executor]) return true;
-        if (executor == owner()) return true;
-        return false;
-    }
+  function isExecutor(address executor) external view returns (bool) {
+    if (_isExecutor[executor]) return true;
+    if (executor == owner()) return true;
+    return false;
+  }
 
-    function setUnifiedStore(address newStore) external onlyOwner {
-        emit UnifiedStoreUpdated(address(_unifiedStore), address(newStore));
-        _unifiedStore = IUnifiedStore(newStore);
-    }
+  function setUnifiedStore(address newStore) external onlyOwner {
+    emit UnifiedStoreUpdated(address(_unifiedStore), address(newStore));
+    _unifiedStore = IUnifiedStore(newStore);
+  }
 
-    function getUnifiedStore() external view returns (IUnifiedStore) {
-        return _unifiedStore;
-    }
+  function getUnifiedStore() external view returns (IUnifiedStore) {
+    return _unifiedStore;
+  }
 }
