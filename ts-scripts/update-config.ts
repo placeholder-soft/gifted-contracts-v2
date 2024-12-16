@@ -21,6 +21,7 @@ const keys = [
   "TOKEN_WBTC",
   "UNISWAP_QUOTER",
   "UNISWAP_ROUTER",
+  "TOKEN_WETH",
 ];
 
 function getChainById(networkId: string): Chain | undefined {

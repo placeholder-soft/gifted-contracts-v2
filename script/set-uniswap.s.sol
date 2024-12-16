@@ -20,14 +20,18 @@ contract UpgradeGiftedBox is Script {
 
     unifiedStore = UnifiedStore(getAddressFromConfig("UnifiedStore"));
 
-    string[] memory keys = new string[](2);
-    address[] memory values = new address[](2);
+    string[] memory keys = new string[](4);
+    address[] memory values = new address[](4);
     keys[0] = "UNISWAP_ROUTER";
     keys[1] = "UNISWAP_QUOTER";
+    keys[2] = "TOKEN_WETH";
+    keys[3] = "TOKEN_USDC";
 
     if (block.chainid == 11155111) {
       values[0] = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
       values[1] = 0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3;
+      values[2] = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+      values[3] = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
     } else if (block.chainid == 1) {
       values[0] = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
       values[1] = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
