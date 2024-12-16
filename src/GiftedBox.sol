@@ -106,7 +106,6 @@ contract GiftedBox is
     _grantRole(UPGRADER_ROLE, defaultAdmin);
     _grantRole(CLAIMER_ROLE, defaultAdmin);
   }
-
   // endregion
 
   // region Admin Functions
@@ -561,6 +560,14 @@ contract GiftedBox is
   {
     address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
     (expectedOutput, amountIn, amountNoSwap) = IGiftedAccount(payable(tokenAccount)).quoteUSDCToETH(percent);
+  }
+
+  function convertUSDCToETHAndSend(uint256 giftedBoxTokenId, uint256 percent, address recipient)
+    external
+    payable
+  {
+    address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
+    IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(percent, recipient);
   }
 
   function getConvertUSDCToETHAndSendPermitMessage(

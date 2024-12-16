@@ -29,16 +29,9 @@ contract UpgradeSwapGiftedBox is Script {
     address proxyAddress = unifiedStore.getAddress("GiftedBox");
     proxy = ERC1967Proxy(payable(proxyAddress));
 
-    // Upgrade GiftedBox if necessary
-    GiftedBox existingImplementation = GiftedBox(address(proxy));
-    if (address(existingImplementation) != newGiftedBoxImplementation) {
-      UUPSUpgradeable(address(proxy)).upgradeToAndCall(newGiftedBoxImplementation, "");
-      console.log("GiftedBox upgraded to new implementation:", newGiftedBoxImplementation);
-    } else {
-      console.log("GiftedBox is already up to date");
-    }
-    GiftedBox(address(proxy)).setUnifiedStore(unifiedStoreAddress);
-    unifiedStore.setAddress("GiftedBoxImplementation", newGiftedBoxImplementation);
+    // Upgrade GiftedBox 
+    UUPSUpgradeable(address(proxy)).upgradeToAndCall(newGiftedBoxImplementation, abi.encodeCall(GiftedBox.setUnifiedStore, (unifiedStoreAddress)));
+    console.log("GiftedBox upgraded to new implementation:", newGiftedBoxImplementation);
 
     // Deploy new GiftedAccount implementation
     address newGiftedAccountImplementation = address(new GiftedAccount());
@@ -47,6 +40,7 @@ contract UpgradeSwapGiftedBox is Script {
 
     // Set up GiftedAccountGuardian
     GiftedAccountGuardian guardian = new GiftedAccountGuardian();
+    unifiedStore.setAddress("GiftedAccountGuardian", address(guardian));
     guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
     console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
 

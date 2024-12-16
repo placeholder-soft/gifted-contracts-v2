@@ -68,6 +68,8 @@ contract GiftedAccount is
         return IUnifiedStore(0xc45f19217e064EcE272e55EE7aAD36cc91e7ADA3);
       } else if (block.chainid == 42161) {
         return IUnifiedStore(0x6A9AB4532a1AD2441238125A966033e4Aa859b0A);
+      } else if (block.chainid == 11155111) {
+        return IUnifiedStore(0x09748F6411a4D1A84a87645A3E406dCb3c31Fc73);
       } else {
         revert("!unified-store-zero-address");
       }
@@ -855,7 +857,7 @@ contract GiftedAccount is
 
     // If no USDC to convert, return 0
     if (amountIn == 0) {
-      return (0, 0, 0);
+      return (0, 0, usdcBalance);
     }
 
     // Get quote from Uniswap quoter
