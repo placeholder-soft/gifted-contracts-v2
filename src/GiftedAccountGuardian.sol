@@ -5,10 +5,17 @@ import "@openzeppelin/access/Ownable2Step.sol";
 import "@openzeppelin/utils/Address.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
+import "./interfaces/IUnifiedStore.sol";
 
 contract GiftedAccountGuardian is Ownable2Step, IGiftedAccountGuardian {
     mapping(address => bool) private _isExecutor;
     address private _implementation;
+    IUnifiedStore private _unifiedStore;
+
+    event UnifiedStoreUpdated(
+        address indexed previousStore,
+        address indexed newStore
+    );
 
     constructor() Ownable(msg.sender) {}
 
@@ -34,5 +41,14 @@ contract GiftedAccountGuardian is Ownable2Step, IGiftedAccountGuardian {
         if (_isExecutor[executor]) return true;
         if (executor == owner()) return true;
         return false;
+    }
+
+    function setUnifiedStore(address newStore) external onlyOwner {
+        emit UnifiedStoreUpdated(address(_unifiedStore), address(newStore));
+        _unifiedStore = IUnifiedStore(newStore);
+    }
+
+    function getUnifiedStore() external view returns (IUnifiedStore) {
+        return _unifiedStore;
     }
 }

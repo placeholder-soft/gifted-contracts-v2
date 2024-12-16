@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
+import "./IUnifiedStore.sol";
 
 interface IGiftedAccountGuardian {
     event Upgraded(address indexed implementation);
@@ -10,4 +11,6 @@ interface IGiftedAccountGuardian {
     function setExecutor(address executor, bool trusted) external;
 
     function getImplementation() external view returns (address);
+
+    function getUnifiedStore() external view returns (IUnifiedStore);
 }

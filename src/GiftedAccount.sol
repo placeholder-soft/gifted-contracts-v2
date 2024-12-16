@@ -18,8 +18,11 @@ import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IGiftedBox.sol";
-import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/utils/cryptography/ECDSA.sol";
+import "./interfaces/ISwapRouter.sol";
+import "./interfaces/IUnifiedStore.sol";
+import "./interfaces/IQuoter.sol";
 
 error UntrustedImplementation();
 error NotAuthorized();
@@ -35,14 +38,14 @@ contract GiftedAccount is
 {
     using Strings for uint256;
     using Strings for address;
-    /// storage
+    // region Storage
     /// @dev AccountGuardian contract address
 
     IGiftedAccountGuardian private _guardian;
 
     uint256 public _nonce;
 
-    constructor() {}
+    // endregion
 
     function initialize(address guardian) public initializer {
         _guardian = IGiftedAccountGuardian(guardian);
@@ -125,7 +128,6 @@ contract GiftedAccount is
         address relayer
     );
 
-    // Add this new event
     event TransferEtherPermit(
         address indexed from,
         address indexed to,
@@ -136,7 +138,6 @@ contract GiftedAccount is
         address relayer
     );
 
-    // Add this new event
     event BatchTransferPermit(
         address indexed signer,
         bytes[] data,
@@ -145,7 +146,7 @@ contract GiftedAccount is
     );
     // endregion Events
 
-    /// modifier
+    // region modifier
 
     /// @dev reverts if caller is not authorized to execute on this account
     modifier onlyAuthorized() {
@@ -158,8 +159,14 @@ contract GiftedAccount is
         _;
     }
 
-    // ======== ERC6551 Interface ========
+    // endregion
+
+    // region ERC6551
     receive() external payable {
+        emit ReceivedEther(msg.sender, msg.value, address(this).balance);
+    }
+
+    fallback() external payable {
         emit ReceivedEther(msg.sender, msg.value, address(this).balance);
     }
 
@@ -176,13 +183,16 @@ contract GiftedAccount is
         uint256[] calldata value,
         bytes[] calldata data
     ) external payable onlyAuthorized returns (bytes[] memory results) {
-        require(to.length == value.length && value.length == data.length, "!length-mismatch");
+        require(
+            to.length == value.length && value.length == data.length,
+            "!length-mismatch"
+        );
         results = new bytes[](to.length);
 
         for (uint256 i = 0; i < to.length; i++) {
             results[i] = call(to[i], value[i], data[i]);
         }
-        
+
         return results;
     }
 
@@ -203,14 +213,18 @@ contract GiftedAccount is
         return IERC721(tokenContract).ownerOf(tokenId);
     }
 
-    // ======== ERC165 Interface ========
+    // endregion
+
+    // region ERC165
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
         return (interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(IERC1155Receiver).interfaceId ||
             interfaceId == type(IERC6551Account).interfaceId);
     }
 
-    // ======== ERC1271 Interface ========
+    // endregion
+
+    // region ERC1271
     function isValidSignature(
         bytes32 hash,
         bytes memory signature
@@ -227,7 +241,9 @@ contract GiftedAccount is
         return "";
     }
 
-    // ============ ERC721Receiver Interface ============
+    // endregion
+
+    // region ERC721Receiver
     function onERC721Received(
         address _operator,
         address _from,
@@ -273,7 +289,9 @@ contract GiftedAccount is
             record.sender == _operator);
     }
 
-    // ============ ERC1155Receiver Interface ============
+    // endregion
+
+    // region ERC1155Receiver
     function onERC1155Received(
         address _operator,
         address _from,
@@ -342,7 +360,9 @@ contract GiftedAccount is
         revert("!sender-not-authorized");
     }
 
-    /// EIP 712
+    // endregion
+
+    // region EIP 712
     /// domain separator
 
     function name() public pure returns (string memory) {
@@ -365,7 +385,17 @@ contract GiftedAccount is
             );
     }
 
-    /// internal
+    // endregion
+
+    // region Privileged functions
+    function setAccountGuardian(address guardian) external onlyOwner {
+        emit AccountGuardianUpgraded(address(_guardian), guardian);
+        _guardian = IGiftedAccountGuardian(guardian);
+    }
+
+    // endregion
+
+    // region misc
     /// @dev Returns the authorization status for a given caller
     function isAuthorized(address caller) public view returns (bool) {
         if (caller == owner()) return true;
@@ -381,16 +411,13 @@ contract GiftedAccount is
         return caller == owner();
     }
 
-    // @dev set account guardian to another address, only owner can call this function
-    function setAccountGuardian(address guardian) external onlyOwner {
-        emit AccountGuardianUpgraded(address(_guardian), guardian);
-        _guardian = IGiftedAccountGuardian(guardian);
-    }
-
     function getGuardian() public view returns (IGiftedAccountGuardian) {
         return _guardian;
     }
 
+    // endregion
+
+    // region internal
     function _incrementNonce() internal {
         _nonce++;
     }
@@ -453,7 +480,42 @@ contract GiftedAccount is
             "CallPermit(address to, uint256 value, byte data, uint256 deadline, uint256 nonce)"
         );
 
-    /// external
+    function _bytesArrayToString(
+        bytes[] memory data
+    ) internal pure returns (string memory) {
+        bytes memory result;
+        for (uint i = 0; i < data.length; i++) {
+            bytes memory hexString;
+            if (data[i].length > 32) {
+                bytes32 hash = keccak256(data[i]);
+                hexString = abi.encodePacked("0x", _toHexString(hash));
+            } else {
+                hexString = abi.encodePacked(
+                    "0x",
+                    _toHexString(bytes32(data[i]))
+                );
+            }
+            result = abi.encodePacked(result, hexString);
+            if (i < data.length - 1) {
+                result = abi.encodePacked(result, ",");
+            }
+        }
+        return string(result);
+    }
+
+    function _toHexString(bytes32 value) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(64);
+        for (uint256 i = 0; i < 32; i++) {
+            str[i * 2] = alphabet[uint8(value[i] >> 4)];
+            str[1 + i * 2] = alphabet[uint8(value[i] & 0x0f)];
+        }
+        return string(str);
+    }
+
+    // endregion
+
+    // region external
 
     function hashTypedCallPermit(
         address to,
@@ -930,33 +992,204 @@ contract GiftedAccount is
             );
     }
 
-    function _bytesArrayToString(
-        bytes[] memory data
-    ) internal pure returns (string memory) {
-        bytes memory result;
-        for (uint i = 0; i < data.length; i++) {
-            bytes memory hexString;
-            if (data[i].length > 32) {
-                bytes32 hash = keccak256(data[i]);
-                hexString = abi.encodePacked("0x", _toHexString(hash));
-            } else {
-                hexString = abi.encodePacked("0x", _toHexString(bytes32(data[i])));
-            }
-            result = abi.encodePacked(result, hexString);
-            if (i < data.length - 1) {
-                result = abi.encodePacked(result, ",");
-            }
-        }
-        return string(result);
+    /// @notice Swaps exact amount of tokens using Uniswap V3
+    /// @param tokenIn The input token address
+    /// @param amountIn The amount of tokens to swap
+    /// @param amountOutMinimum The minimum amount of output tokens to receive
+    /// @param deadline The timestamp after which the transaction will revert
+    /// @return amountOut The amount of output tokens received
+    function swapExactTokensForETH(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMinimum,
+        uint256 deadline
+    ) internal returns (uint256 amountOut) {
+        require(msg.sender == owner() || msg.sender == address(this), "!not-authorized");
+        require(block.timestamp <= deadline, "Transaction too old");
+
+        IUnifiedStore store = _guardian.getUnifiedStore();
+        address router = store.getAddress("UNISWAP_ROUTER");
+        require(router != address(0), "!router-not-found");
+
+        // Approve token spend if needed
+        IERC20(tokenIn).approve(router, amountIn);
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+            .ExactInputSingleParams({
+                tokenIn: tokenIn,
+                tokenOut: address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), // ETH
+                fee: 500, // 0.05% fee tier
+                recipient: address(this),
+                deadline: deadline,
+                amountIn: amountIn,
+                amountOutMinimum: amountOutMinimum,
+                sqrtPriceLimitX96: 0
+            });
+
+        amountOut = ISwapRouter(router).exactInputSingle(params);
     }
 
-    function _toHexString(bytes32 value) internal pure returns (string memory) {
-        bytes memory alphabet = "0123456789abcdef";
-        bytes memory str = new bytes(64);
-        for (uint256 i = 0; i < 32; i++) {
-            str[i*2] = alphabet[uint8(value[i] >> 4)];
-            str[1+i*2] = alphabet[uint8(value[i] & 0x0f)];
+    /// @notice Convenience function to swap USDC for ETH
+    /// @param amountIn The amount of USDC to swap
+    /// @param amountOutMinimum The minimum amount of ETH to receive
+    /// @param deadline The timestamp after which the transaction will revert
+    /// @return amountOut The amount of ETH received
+    function swapExactUSDCForETH(
+        uint256 amountIn,
+        uint256 amountOutMinimum,
+        uint256 deadline
+    ) external returns (uint256 amountOut) {
+        address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+        require(usdc != address(0), "!usdc-not-found");
+
+        return
+            swapExactTokensForETH(usdc, amountIn, amountOutMinimum, deadline);
+    }
+
+    /// @notice Quotes the expected ETH output for converting a percentage of USDC
+    /// @param percent Percentage of USDC to convert (0-100000)
+    /// @return expectedOutput The expected amount of ETH to receive
+    /// @return amountIn The amount of USDC to be converted
+    /// @return amountNoSwap The amount of USDC that will not be swapped
+    function quoteUSDCToETH(
+        uint256 percent
+    ) public view returns (uint256 expectedOutput, uint256 amountIn, uint256 amountNoSwap) {
+        require(percent <= 100000, "!invalid-percentage");
+
+        address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+        require(usdc != address(0), "!usdc-not-found");
+
+        address quoter = _guardian.getUnifiedStore().getAddress("UNISWAP_QUOTER");
+        require(quoter != address(0), "!quoter-not-found");
+
+        // Get current USDC balance and decimals
+        uint256 usdcBalance = IERC20(usdc).balanceOf(address(this));
+
+        // Calculate amount of USDC to convert based on percentage
+        // percent is in basis points (100000 = 100%)
+        amountIn = (usdcBalance * percent) / 100000;
+
+        // If no USDC to convert, return 0
+        if (amountIn == 0) {
+            return (0, 0, 0);
         }
-        return string(str);
+
+        // Get quote from Uniswap quoter
+        expectedOutput = IQuoter(quoter).quoteExactInputSingle(
+            usdc,
+            address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), // ETH
+            500, // 0.05% fee tier
+            amountIn,
+            0
+        );
+
+        amountNoSwap = usdcBalance - amountIn;
+    }
+
+    /// @notice Converts a percentage of USDC to ETH and sends both to recipient
+    /// @param percent Percentage of USDC to convert (0-100000)
+    /// @param recipient Address to receive both USDC and ETH
+    function convertUSDCToETHAndSend(
+        uint256 percent,
+        address recipient
+    ) public {
+        require(msg.sender == owner() || msg.sender == address(this), "!not-authorized");
+        require(percent <= 100000, "!invalid-percentage");
+        require(recipient != address(0), "!invalid-recipient");
+
+        address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+        require(usdc != address(0), "!usdc-not-found");
+
+        // Get quote for conversion
+        (uint256 expectedOutput, uint256 amountToConvert,) = quoteUSDCToETH(percent);
+        
+        // If there's an amount to convert, do the swap
+        if (amountToConvert > 0) {
+            // Set a reasonable deadline (30 minutes from now)
+            uint256 deadline = block.timestamp + 30 minutes;
+
+            // Calculate minimum output with 1% slippage
+            uint256 minOutput = (expectedOutput * 99) / 100;
+
+            // Perform the swap
+            swapExactTokensForETH(usdc, amountToConvert, minOutput, deadline);
+        }
+
+        // Send remaining USDC to recipient
+        uint256 remainingUSDC = IERC20(usdc).balanceOf(address(this));
+        if (remainingUSDC > 0) {
+            bool success = IERC20(usdc).transfer(recipient, remainingUSDC);
+            require(success, "!usdc-transfer-failed");
+        }
+
+        // Send ETH to recipient
+        uint256 ethBalance = address(this).balance;
+        if (ethBalance > 0) {
+            (bool success, ) = recipient.call{value: ethBalance}("");
+            require(success, "!eth-transfer-failed");
+        }
+    }
+
+    function convertUSDCToETHAndSend(
+        uint256 percent,
+        address recipient,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        string memory message = getConvertUSDCToETHAndSendPermitMessage(
+            percent,
+            recipient,
+            deadline
+        );
+        bytes32 signHash = hashPersonalSignedMessage(bytes(message));
+
+        address signer = _recover(signHash, v, r, s);
+        require(signer == owner(), "!transfer-permit-invalid-signature");
+
+        _incrementNonce();
+        (bool success, bytes memory returnData) = address(this).call(
+            abi.encodeWithSignature(
+                "convertUSDCToETHAndSend(uint256,address)",
+                percent,
+                recipient
+            )
+        );
+        if (!success) {
+            if (returnData.length > 0) {
+                assembly {
+                    let returnDataSize := mload(returnData)
+                    revert(add(32, returnData), returnDataSize)
+                }
+            } else {
+                revert("!convert-usdc-to-eth-and-send-failed");
+            }
+        }
+    }
+
+    function getConvertUSDCToETHAndSendPermitMessage(
+        uint256 percent,
+        address recipient,
+        uint256 deadline
+    ) public view returns (string memory) {
+        return
+            string.concat(
+                "I authorize the conversion of USDC to ETH",
+                "\n Percent: ",
+                Strings.toString(percent),
+                "\n Recipient: ",
+                Strings.toHexString(uint256(uint160(recipient)), 20),
+                "\n Deadline: ",
+                Strings.toString(deadline),
+                "\n Nonce: ",
+                nonce().toString(),
+                "\n Chain ID: ",
+                block.chainid.toString(),
+                "\n BY: ",
+                name(),
+                "\n Version: ",
+                "0.0.2"
+            );
     }
 }
