@@ -23,6 +23,7 @@ import "@openzeppelin/utils/cryptography/ECDSA.sol";
 import "./interfaces/ISwapRouter.sol";
 import "./interfaces/IUnifiedStore.sol";
 import "./interfaces/IQuoter.sol";
+import "./interfaces/IWETH.sol"; // Added IWETH interface
 
 error UntrustedImplementation();
 error NotAuthorized();
@@ -798,12 +799,15 @@ contract GiftedAccount is
     address router = getUnifiedStore().getAddress("UNISWAP_ROUTER");
     require(router != address(0), "!router-not-found");
 
+    address weth = getUnifiedStore().getAddress("TOKEN_WETH");
+    require(weth != address(0), "!weth-not-found");
+
     // Approve token spend if needed
     IERC20(tokenIn).approve(router, amountIn);
 
     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
       tokenIn: tokenIn,
-      tokenOut: address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), // ETH
+      tokenOut: weth,
       fee: 500, // 0.05% fee tier
       recipient: address(this),
       deadline: deadline,
@@ -813,21 +817,9 @@ contract GiftedAccount is
     });
 
     amountOut = ISwapRouter(router).exactInputSingle(params);
-  }
 
-  /// @notice Convenience function to swap USDC for ETH
-  /// @param amountIn The amount of USDC to swap
-  /// @param amountOutMinimum The minimum amount of ETH to receive
-  /// @param deadline The timestamp after which the transaction will revert
-  /// @return amountOut The amount of ETH received
-  function swapExactUSDCForETH(uint256 amountIn, uint256 amountOutMinimum, uint256 deadline)
-    external
-    returns (uint256 amountOut)
-  {
-    address usdc = getUnifiedStore().getAddress("TOKEN_USDC");
-    require(usdc != address(0), "!usdc-not-found");
-
-    return swapExactTokensForETH(usdc, amountIn, amountOutMinimum, deadline);
+    // Unwrap WETH to ETH
+    IWETH(weth).withdraw(amountOut);
   }
 
   /// @notice Quotes the expected ETH output for converting a percentage of USDC
@@ -860,10 +852,13 @@ contract GiftedAccount is
       return (0, 0, usdcBalance);
     }
 
+    address weth = getUnifiedStore().getAddress("TOKEN_WETH");
+    require(weth != address(0), "!weth-not-found");
+
     // Get quote from Uniswap quoter
     expectedOutput = IQuoter(quoter).quoteExactInputSingle(
       usdc,
-      address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), // ETH
+      weth, // ETH
       500, // 0.05% fee tier
       amountIn,
       0

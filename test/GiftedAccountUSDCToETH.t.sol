@@ -22,6 +22,7 @@ import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
 import "../src/GasSponsorBook.sol";
 import { GiftingRole } from "../src/interfaces/IGiftedBox.sol";
+import "./mocks/MockWETH.sol";
 
 contract MockERC721 is ERC721 {
   constructor() ERC721("MockERC721", "M721") { }
@@ -55,9 +56,11 @@ contract MockSwapRouter is ISwapRouter {
     // Transfer USDC from sender to this contract
     IERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
 
-    // Transfer ETH to recipient
-    (bool success,) = payable(params.recipient).call{ value: amountOut }("");
-    require(success, "ETH transfer failed");
+    // // Transfer ETH to recipient
+    // (bool success,) = payable(params.recipient).call{ value: amountOut }("");
+    // require(success, "ETH transfer failed");
+
+    IERC20(params.tokenOut).transfer(params.recipient, amountOut);
   }
 
   // Function to receive ETH
@@ -86,6 +89,7 @@ contract GiftedAccountUSDCToETHTest is Test {
   MockERC721 internal mockNFT;
   MockUSDC internal mockUSDC;
   MockQuoter internal mockQuoter;
+  MockWETH internal mockWETH;
   MockSwapRouter internal mockRouter;
   GiftedBox internal giftedBox;
   ERC6551Registry internal registry;
@@ -114,6 +118,7 @@ contract GiftedAccountUSDCToETHTest is Test {
     mockUSDC = new MockUSDC();
     mockQuoter = new MockQuoter();
     mockRouter = new MockSwapRouter();
+    mockWETH = new MockWETH();
     store = new UnifiedStore();
 
     // Deploy and setup guardian
@@ -157,9 +162,15 @@ contract GiftedAccountUSDCToETHTest is Test {
     store.setAddress("UNISWAP_ROUTER", address(mockRouter));
     store.setAddress("TOKEN_USDC", address(mockUSDC));
     store.setAddress("UNISWAP_QUOTER", address(mockQuoter));
+    store.setAddress("TOKEN_WETH", address(mockWETH));
 
+    mockUSDC.mint(address(mockRouter), 99999 ether);
     // Fund the router with ETH for swaps
-    vm.deal(address(mockRouter), 1000 ether);
+    vm.deal(address(mockRouter), 2000 ether);
+
+    vm.prank(address(mockRouter));
+    (bool success,) = address(mockWETH).call{ value: 1000 ether }("");
+    require(success, "ETH Wrap failed");
     // Fund the gas relayer
     vm.deal(gasRelayer, 100 ether);
 
