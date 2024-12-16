@@ -135,7 +135,7 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
-    giftedBox.setAccountGuardian(address(guardian));
+    giftedBox.setUnifiedStore(address(store));
     giftedBox.grantRole(giftedBox.CLAIMER_ROLE(), gasRelayer);
 
     vault = new Vault();

@@ -43,7 +43,6 @@ contract GiftedBox is
   event GiftedBoxClaimedByAdmin(uint256 tokenId, GiftingRole role, address sender, address recipient, address operator);
   event AccountImplUpdated(address indexed newAccountImpl);
   event RegistryUpdated(address indexed newRegistry);
-  event GuardianUpdated(address indexed newGuardian);
   event GasSponsorBookUpdated(address indexed newGasSponsorBook);
   event RefundToTokenBoundedAccount(address indexed account, address indexed from, uint256 value);
   event GasSponsorEnabled(address indexed account, uint256 tokenId, uint256 ticketId, uint256 ticketCount);
@@ -52,6 +51,7 @@ contract GiftedBox is
     address indexed payer, address sender, address recipient, address operator, uint256 tokenId, uint256 fee
   );
   event VaultUpdated(address indexed newVault);
+  event UnifiedStoreUpdated(address indexed newUnifiedStore);
   event TransferERC20Permit(
     uint256 indexed giftedBoxTokenId,
     address indexed from,
@@ -78,9 +78,12 @@ contract GiftedBox is
   mapping(uint256 => GiftingRecord) public giftingRecords;
   GiftedAccount public accountImpl;
   ERC6551Registry public registry;
-  GiftedAccountGuardian public guardian;
+  GiftedAccountGuardian public guardian; // guardian is deprecated
   IGasSponsorBook public gasSponsorBook;
   IVault public vault;
+
+  // added unifed store on swap upgrade
+  IUnifiedStore public unifiedStore;
 
   // endregion
 
@@ -127,11 +130,6 @@ contract GiftedBox is
     emit RegistryUpdated(address(newRegistry));
   }
 
-  function setAccountGuardian(address newGuardian) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    guardian = GiftedAccountGuardian(newGuardian);
-    emit GuardianUpdated(address(newGuardian));
-  }
-
   function setGasSponsorBook(address newGasSponsorBook) public onlyRole(DEFAULT_ADMIN_ROLE) {
     gasSponsorBook = IGasSponsorBook(newGasSponsorBook);
     emit GasSponsorBookUpdated(address(newGasSponsorBook));
@@ -140,6 +138,11 @@ contract GiftedBox is
   function setVault(address newVault) public onlyRole(DEFAULT_ADMIN_ROLE) {
     vault = IVault(newVault);
     emit VaultUpdated(address(newVault));
+  }
+
+  function setUnifiedStore(address newUnifiedStore) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    unifiedStore = IUnifiedStore(newUnifiedStore);
+    emit UnifiedStoreUpdated(address(newUnifiedStore));
   }
 
   // endregion
@@ -206,7 +209,7 @@ contract GiftedBox is
         address(this),
         tokenId,
         0,
-        abi.encodeWithSignature("initialize(address)", address(guardian))
+        abi.encodeWithSignature("initialize(address)", address(unifiedStore))
       );
     }
   }

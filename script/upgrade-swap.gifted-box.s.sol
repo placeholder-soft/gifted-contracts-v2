@@ -15,17 +15,21 @@ contract UpgradeSwapGiftedBox is Script {
   UnifiedStore public unifiedStore;
 
   function run() public {
+    // Get deployer address from config
     address deployer = getAddressFromConfig("deployer");
     vm.startBroadcast(deployer);
 
+    // Get UnifiedStore address and initialize
     address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
     unifiedStore = UnifiedStore(unifiedStoreAddress);
 
+    // Deploy new GiftedBox implementation
     address newGiftedBoxImplementation = address(new GiftedBox());
     unifiedStore.setAddress("GiftedBoxImplementation", newGiftedBoxImplementation);
     address proxyAddress = unifiedStore.getAddress("GiftedBox");
     proxy = ERC1967Proxy(payable(proxyAddress));
 
+    // Upgrade GiftedBox if necessary
     GiftedBox existingImplementation = GiftedBox(address(proxy));
     if (address(existingImplementation) != newGiftedBoxImplementation) {
       UUPSUpgradeable(address(proxy)).upgradeToAndCall(newGiftedBoxImplementation, "");
@@ -33,12 +37,15 @@ contract UpgradeSwapGiftedBox is Script {
     } else {
       console.log("GiftedBox is already up to date");
     }
+    GiftedBox(address(proxy)).setUnifiedStore(unifiedStoreAddress);
     unifiedStore.setAddress("GiftedBoxImplementation", newGiftedBoxImplementation);
 
+    // Deploy new GiftedAccount implementation
     address newGiftedAccountImplementation = address(new GiftedAccount());
     unifiedStore.setAddress("GiftedAccountImplementation", newGiftedAccountImplementation);
     console.log("UnifiedStore set new GiftedAccount implementation:", newGiftedAccountImplementation);
 
+    // Set up GiftedAccountGuardian
     GiftedAccountGuardian guardian = new GiftedAccountGuardian();
     guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
     console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
@@ -46,6 +53,7 @@ contract UpgradeSwapGiftedBox is Script {
     guardian.setUnifiedStore(unifiedStoreAddress);
     console.log("GiftedAccountGuardian set UnifiedStore:", unifiedStoreAddress);
 
+    // Set manager as executor in GiftedAccountGuardian
     address manager = getAddressFromConfig("manager");
     guardian.setExecutor(manager, true);
 

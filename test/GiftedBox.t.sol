@@ -16,6 +16,7 @@ import "@openzeppelin-contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/Vault.sol";
 import "../src/GasSponsorBook.sol";
+import "../src/UnifiedStore.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockERC721 is ERC721 {
@@ -61,6 +62,7 @@ contract GiftedBoxTest is Test, TestEvents {
   GasSponsorBook public sponsorBook;
   address gasRelayer = vm.addr(32000);
   MockERC20 internal mockERC20;
+  UnifiedStore internal unifiedStore = new UnifiedStore();
 
   // global testing variable to be used in multiple tests
   // to avoid stacks to deeps error
@@ -95,7 +97,7 @@ contract GiftedBoxTest is Test, TestEvents {
 
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
-    giftedBox.setAccountGuardian(address(guardian));
+    giftedBox.setUnifiedStore(address(guardian));
     giftedBox.grantRole(giftedBox.CLAIMER_ROLE(), gasRelayer);
 
     vault = new Vault();
@@ -112,6 +114,8 @@ contract GiftedBoxTest is Test, TestEvents {
     giftedBox.setVault(address(vault));
 
     mockERC20 = new MockERC20();
+
+    unifiedStore.setAddress("GiftedAccountGuardian", address(guardian));
 
     vm.deal(gasRelayer, 100 ether);
   }

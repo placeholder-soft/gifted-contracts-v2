@@ -65,6 +65,7 @@ contract DeploySepolia is Script {
     require(deployer != address(0), "Deployer address cannot be zero");
     console.log("Deploying contracts with deployer:", deployer);
 
+    unifiedStore = new UnifiedStore();
     // Deploy guardian and log
     guardian = new GiftedAccountGuardian();
     console.log("GiftedAccountGuardian deployed at:", address(guardian));
@@ -98,7 +99,7 @@ contract DeploySepolia is Script {
 
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
-    giftedBox.setAccountGuardian(address(guardian));
+    giftedBox.setUnifiedStore(address(unifiedStore));
     giftedBox.grantRole(giftedBox.CLAIMER_ROLE(), gasRelayer);
 
     vault = new Vault();
@@ -114,7 +115,6 @@ contract DeploySepolia is Script {
     nftVault = new NFTVault();
     nftVault.grantManagerRole(gasRelayer);
 
-    unifiedStore = new UnifiedStore();
 
     string[] memory keys = new string[](7);
     address[] memory addresses = new address[](7);

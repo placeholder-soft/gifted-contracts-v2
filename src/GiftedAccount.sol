@@ -39,19 +39,51 @@ contract GiftedAccount is
   using Strings for uint256;
   using Strings for address;
   // region Storage
-  /// @dev AccountGuardian contract address
 
+  /// @dev _guardian is deprecated, the var is kept for maintaining storage layout
+  // @deprecated
   IGiftedAccountGuardian private _guardian;
 
   uint256 public _nonce;
 
+  IUnifiedStore private _unifiedStore;
+
   // endregion
 
-  function initialize(address guardian) public initializer {
-    _guardian = IGiftedAccountGuardian(guardian);
+  function initialize(address unifiedStore) public initializer {
+    _unifiedStore = IUnifiedStore(unifiedStore);
+  }
+
+  function getGuardian() public view returns (IGiftedAccountGuardian) {
+    return IGiftedAccountGuardian(getUnifiedStore().getAddress("GiftedAccountGuardian"));
+  }
+
+  function getUnifiedStore() public view returns (IUnifiedStore) {
+    if (address(_unifiedStore) == address(0)) {
+      // handle upgrade scenario in the case where _unifiedStore is not initialized
+      // due to the upgrade
+      if (block.chainid == 1) {
+        return IUnifiedStore(0xb1B46db99b18F00c15605Bb2BA15da26E7Db22bB);
+      } else if (block.chainid == 8453) {
+        return IUnifiedStore(0xc45f19217e064EcE272e55EE7aAD36cc91e7ADA3);
+      } else if (block.chainid == 42161) {
+        return IUnifiedStore(0x6A9AB4532a1AD2441238125A966033e4Aa859b0A);
+      } else {
+        revert("!unified-store-zero-address");
+      }
+    }
+    return _unifiedStore;
+  }
+
+  /// @dev owner is free to change the unified store which removes centralization control
+  function setUnifiedStore(address unifiedStore) public onlyOwner {
+    _unifiedStore = IUnifiedStore(unifiedStore);
+    emit UnifiedStoreUpdated(address(_unifiedStore), address(unifiedStore));
   }
 
   // region Events
+
+  event UnifiedStoreUpdated(address indexed oldAddress, address indexed newAddress);
 
   event CallPermit(address indexed owner, address indexed to, uint256 nonce, uint256 deadline);
 
@@ -72,8 +104,6 @@ contract GiftedAccount is
   /// @param amount The amount of ETH sent
   /// @param newBalance The new balance of the account
   event ReceivedEther(address indexed sender, uint256 amount, uint256 newBalance);
-
-  event AccountGuardianUpgraded(address indexed previousGuardian, address indexed newGuardian);
 
   event GiftedAccountERC1155Received(
     address operator,
@@ -318,20 +348,13 @@ contract GiftedAccount is
 
   // endregion
 
-  // region Privileged functions
-  function setAccountGuardian(address guardian) external onlyOwner {
-    emit AccountGuardianUpgraded(address(_guardian), guardian);
-    _guardian = IGiftedAccountGuardian(guardian);
-  }
-
-  // endregion
-
   // region misc
   /// @dev Returns the authorization status for a given caller
   function isAuthorized(address caller) public view returns (bool) {
     if (caller == owner()) return true;
 
-    if (address(_guardian) != address(0) && _guardian.isExecutor(caller)) {
+    IGiftedAccountGuardian guardian = getGuardian();
+    if (address(guardian) != address(0) && guardian.isExecutor(caller)) {
       return true;
     }
 
@@ -341,10 +364,6 @@ contract GiftedAccount is
   /// @dev check if it is the token owner of the account
   function isOwner(address caller) public view returns (bool) {
     return caller == owner();
-  }
-
-  function getGuardian() public view returns (IGiftedAccountGuardian) {
-    return _guardian;
   }
 
   // endregion
@@ -774,8 +793,7 @@ contract GiftedAccount is
     require(msg.sender == owner() || msg.sender == address(this), "!not-authorized");
     require(block.timestamp <= deadline, "Transaction too old");
 
-    IUnifiedStore store = _guardian.getUnifiedStore();
-    address router = store.getAddress("UNISWAP_ROUTER");
+    address router = getUnifiedStore().getAddress("UNISWAP_ROUTER");
     require(router != address(0), "!router-not-found");
 
     // Approve token spend if needed
@@ -804,7 +822,7 @@ contract GiftedAccount is
     external
     returns (uint256 amountOut)
   {
-    address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+    address usdc = getUnifiedStore().getAddress("TOKEN_USDC");
     require(usdc != address(0), "!usdc-not-found");
 
     return swapExactTokensForETH(usdc, amountIn, amountOutMinimum, deadline);
@@ -822,10 +840,10 @@ contract GiftedAccount is
   {
     require(percent <= 100000, "!invalid-percentage");
 
-    address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+    address usdc = getUnifiedStore().getAddress("TOKEN_USDC");
     require(usdc != address(0), "!usdc-not-found");
 
-    address quoter = _guardian.getUnifiedStore().getAddress("UNISWAP_QUOTER");
+    address quoter = getUnifiedStore().getAddress("UNISWAP_QUOTER");
     require(quoter != address(0), "!quoter-not-found");
 
     // Get current USDC balance and decimals
@@ -860,7 +878,7 @@ contract GiftedAccount is
     require(percent <= 100000, "!invalid-percentage");
     require(recipient != address(0), "!invalid-recipient");
 
-    address usdc = _guardian.getUnifiedStore().getAddress("TOKEN_USDC");
+    address usdc = getUnifiedStore().getAddress("TOKEN_USDC");
     require(usdc != address(0), "!usdc-not-found");
 
     // Get quote for conversion

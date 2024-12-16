@@ -8,8 +8,6 @@ interface IGiftedAccount {
 
   function getGuardian() external view returns (IGiftedAccountGuardian);
 
-  function setAccountGuardian(address guardian) external;
-
   function getTransferERC721PermitMessage(address tokenContract, uint256 tokenId, address to, uint256 deadline)
     external
     view

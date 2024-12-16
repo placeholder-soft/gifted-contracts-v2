@@ -58,6 +58,7 @@ contract DeployMainnet is Script {
 
   function deploy_contracts() internal {
     vm.startBroadcast(deployer);
+    unifiedStore = new UnifiedStore();
     guardian = new GiftedAccountGuardian();
     GiftedAccount giftedAccountImpl = new GiftedAccount();
     guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
@@ -74,7 +75,7 @@ contract DeployMainnet is Script {
 
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
-    giftedBox.setAccountGuardian(address(guardian));
+    giftedBox.setUnifiedStore(address(unifiedStore));
     giftedBox.grantRole(giftedBox.CLAIMER_ROLE(), gasRelayer);
 
     vault = new Vault();
@@ -87,7 +88,6 @@ contract DeployMainnet is Script {
     sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
     sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
 
-    unifiedStore = new UnifiedStore();
 
     string[] memory keys = new string[](6);
     address[] memory addresses = new address[](6);
