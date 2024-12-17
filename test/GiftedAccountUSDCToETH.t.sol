@@ -46,11 +46,6 @@ contract MockUSDC is ERC20 {
 
 contract MockSwapRouter is ISwapRouter {
   uint256 private constant ETH_PRICE = 2000; // 1 ETH = 2000 USDC
-  MockWETH public immutable weth;
-
-  constructor(address _weth) {
-    weth = MockWETH(_weth);
-  }
 
   function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut) {
     // Get USDC decimals dynamically
@@ -61,31 +56,32 @@ contract MockSwapRouter is ISwapRouter {
     // Transfer USDC from sender to this contract
     IERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
 
-    // Mint WETH to recipient
-    weth.deposit{value: amountOut}();
-    require(weth.transfer(params.recipient, amountOut), "WETH transfer failed");
+    // // Transfer ETH to recipient
+    // (bool success,) = payable(params.recipient).call{ value: amountOut }("");
+    // require(success, "ETH transfer failed");
 
-    return amountOut;
+    IERC20(params.tokenOut).transfer(params.recipient, amountOut);
   }
 
+  // Function to receive ETH
   receive() external payable { }
 }
 
 contract MockQuoter is IQuoter {
   uint256 public constant ETH_PRICE = 2000; // 1 ETH = 2000 USDC
 
-  function quoteExactInputSingle(address tokenIn, address, uint24, uint256 amountIn, uint160)
+  function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
     external
     view
-    returns (uint256 amountOut)
+    returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)
   {
     // Get USDC decimals dynamically
-    uint8 tokenInDecimals = IERC20Metadata(tokenIn).decimals();
+    uint8 tokenInDecimals = IERC20Metadata(params.tokenIn).decimals();
 
     // Convert to ETH (18 decimals)
     // amountOut = amountIn * (1e18 / (ETH_PRICE * 10^tokenInDecimals))
-    amountOut = (amountIn * 1e18) / (ETH_PRICE * (10 ** uint256(tokenInDecimals)));
-    return amountOut;
+    amountOut = (params.amountIn * 1e18) / (ETH_PRICE * (10 ** uint256(tokenInDecimals)));
+    return (amountOut, 0, 0, 0);
   }
 }
 
@@ -120,16 +116,15 @@ contract GiftedAccountUSDCToETHTest is Test {
     // Deploy mock contracts
     mockNFT = new MockERC721();
     mockUSDC = new MockUSDC();
-    mockWETH = new MockWETH();
     mockQuoter = new MockQuoter();
-    mockRouter = new MockSwapRouter(address(mockWETH));
+    mockRouter = new MockSwapRouter();
+    mockWETH = new MockWETH();
     store = new UnifiedStore();
 
     // Deploy and setup guardian
     guardian = new GiftedAccountGuardian();
     GiftedAccount giftedAccountImpl = new GiftedAccount();
     guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
-    guardian.setUnifiedStore(address(store));
 
     // Deploy account proxy
     GiftedAccountProxy accountProxy = new GiftedAccountProxy(address(guardian));
@@ -170,8 +165,7 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     mockUSDC.mint(address(mockRouter), 99999 ether);
     // Fund the router with ETH for swaps
-    vm.deal(address(mockRouter), 1000 ether);
-    vm.deal(address(mockWETH), 1000 ether); // Add ETH balance to MockWETH
+    vm.deal(address(mockRouter), 2000 ether);
 
     vm.prank(address(mockRouter));
     (bool success,) = address(mockWETH).call{ value: 1000 ether }("");
@@ -250,7 +244,7 @@ contract GiftedAccountUSDCToETHTest is Test {
     uint256 initialRecipientETHBalance = recipient.balance;
 
     // Convert 50% of USDC to ETH and send to recipient
-    account.convertUSDCToETHAndSend(50000, recipient);
+    account.convertUSDCToETHAndSend(50000, 0, recipient);
 
     // Verify final balances
     assertEq(mockUSDC.balanceOf(address(account)), 0, "!account-should-have-no-usdc");
@@ -266,21 +260,21 @@ contract GiftedAccountUSDCToETHTest is Test {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
     vm.prank(makeAddr("notOwner"));
     vm.expectRevert("!not-authorized");
-    account.convertUSDCToETHAndSend(50000, recipient);
+    account.convertUSDCToETHAndSend(50000, 0, recipient);
   }
 
   function testRevert_ConvertUSDCToETHAndSend_InvalidPercentage() public {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
     vm.expectRevert("!invalid-percentage");
     vm.prank(recipient);
-    account.convertUSDCToETHAndSend(100001, recipient);
+    account.convertUSDCToETHAndSend(100001, 0, recipient);
   }
 
   function testRevert_ConvertUSDCToETHAndSend_ZeroRecipient() public {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
     vm.prank(recipient);
     vm.expectRevert("!invalid-recipient");
-    account.convertUSDCToETHAndSend(50000, address(0));
+    account.convertUSDCToETHAndSend(50000, 0, address(0));
   }
 
   function test_ConvertUSDCToETHAndSend_ZeroPercent() public {
@@ -289,7 +283,7 @@ contract GiftedAccountUSDCToETHTest is Test {
     uint256 initialUSDCBalance = mockUSDC.balanceOf(address(account));
 
     vm.prank(recipient);
-    account.convertUSDCToETHAndSend(0, recipient);
+    account.convertUSDCToETHAndSend(0, 0, recipient);
 
     // All USDC should be transferred to recipient, no conversion
     assertEq(mockUSDC.balanceOf(recipient), initialUSDCBalance, "!incorrect-usdc-transfer");
@@ -311,7 +305,7 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     // Generate permit message
     string memory permitMessage =
-      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 50000, recipient, block.timestamp + 1 days);
+      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 50000, 0, recipient, block.timestamp + 1 days);
 
     // Sign permit message
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
@@ -321,7 +315,7 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     // Convert 50% of USDC to ETH and send to recipient with sponsor ticket
     vm.prank(gasRelayer);
-    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, recipient, block.timestamp + 1 days, v, r, s);
+    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, 0, recipient, block.timestamp + 1 days, v, r, s);
 
     // Verify final balances
     assertEq(mockUSDC.balanceOf(address(account)), 0, "!account-should-have-no-usdc");
@@ -334,7 +328,7 @@ contract GiftedAccountUSDCToETHTest is Test {
   function testRevert_ConvertUSDCToETHAndSendSponsor_NotGasRelayer() public {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
     string memory permitMessage =
-      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 50000, recipient, block.timestamp + 1 days);
+      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 50000, 0, recipient, block.timestamp + 1 days);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
       2, // giftRecipient's private key
@@ -343,14 +337,14 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     vm.prank(makeAddr("notGasRelayer"));
     vm.expectRevert("!consumer-not-permitted");
-    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, recipient, block.timestamp + 1 days, v, r, s);
+    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, 0, recipient, block.timestamp + 1 days, v, r, s);
   }
 
   function testRevert_ConvertUSDCToETHAndSendSponsor_InvalidPercentage() public {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
 
     string memory permitMessage = giftedBox.getConvertUSDCToETHAndSendPermitMessage(
-      GIFTED_BOX_TOKEN_ID, 100001, recipient, block.timestamp + 1 days
+      GIFTED_BOX_TOKEN_ID, 100001, 0, recipient, block.timestamp + 1 days
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
@@ -360,14 +354,14 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     vm.prank(gasRelayer);
     vm.expectRevert("!invalid-percentage");
-    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 100001, recipient, block.timestamp + 1 days, v, r, s);
+    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 100001, 0, recipient, block.timestamp + 1 days, v, r, s);
   }
 
   function testRevert_ConvertUSDCToETHAndSendSponsor_ZeroRecipient() public {
     GiftedAccount account = GiftedAccount(payable(giftedBox.tokenAccountAddress(GIFTED_BOX_TOKEN_ID)));
 
     string memory permitMessage = giftedBox.getConvertUSDCToETHAndSendPermitMessage(
-      GIFTED_BOX_TOKEN_ID, 50000, address(0), block.timestamp + 1 days
+      GIFTED_BOX_TOKEN_ID, 50000, 0, address(0), block.timestamp + 1 days
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
@@ -377,7 +371,7 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     vm.prank(gasRelayer);
     vm.expectRevert("!invalid-recipient");
-    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, address(0), block.timestamp + 1 days, v, r, s);
+    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 50000, 0, address(0), block.timestamp + 1 days, v, r, s);
   }
 
   function test_ConvertUSDCToETHAndSendSponsor_ZeroPercent() public {
@@ -387,7 +381,7 @@ contract GiftedAccountUSDCToETHTest is Test {
     uint256 initialRecipientETHBalance = recipient.balance;
 
     string memory permitMessage =
-      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 0, recipient, block.timestamp + 1 days);
+      giftedBox.getConvertUSDCToETHAndSendPermitMessage(GIFTED_BOX_TOKEN_ID, 0, 0, recipient, block.timestamp + 1 days);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
       2, // giftRecipient's private key
@@ -395,7 +389,7 @@ contract GiftedAccountUSDCToETHTest is Test {
     );
 
     vm.prank(gasRelayer);
-    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 0, recipient, block.timestamp + 1 days, v, r, s);
+    giftedBox.convertUSDCToETHAndSendSponsor(GIFTED_BOX_TOKEN_ID, 0, 0, recipient, block.timestamp + 1 days, v, r, s);
 
     // All USDC should be transferred to recipient, no conversion
     assertEq(mockUSDC.balanceOf(recipient), initialUSDCBalance, "!incorrect-usdc-transfer");

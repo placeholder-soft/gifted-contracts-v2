@@ -561,27 +561,31 @@ contract GiftedBox is
     (expectedOutput, amountIn, amountNoSwap) = IGiftedAccount(payable(tokenAccount)).quoteUSDCToETH(percent);
   }
 
-  function convertUSDCToETHAndSend(uint256 giftedBoxTokenId, uint256 percent, address recipient)
+  function convertUSDCToETHAndSend(uint256 giftedBoxTokenId, uint256 percent, uint256 minAmountOut, address recipient)
     external
     payable
   {
     address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
-    IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(percent, recipient);
+    IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(percent, minAmountOut, recipient);
   }
 
   function getConvertUSDCToETHAndSendPermitMessage(
     uint256 giftedBoxTokenId,
     uint256 percent,
+    uint256 minAmountOut,
     address recipient,
     uint256 deadline
   ) external view returns (string memory) {
     address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
-    return IGiftedAccount(payable(tokenAccount)).getConvertUSDCToETHAndSendPermitMessage(percent, recipient, deadline);
+    return IGiftedAccount(payable(tokenAccount)).getConvertUSDCToETHAndSendPermitMessage(
+      percent, minAmountOut, recipient, deadline
+    );
   }
 
   function convertUSDCToETHAndSendSponsor(
     uint256 giftedBoxTokenId,
     uint256 percent,
+    uint256 minAmountOut,
     address recipient,
     uint256 deadline,
     uint8 v,
@@ -593,7 +597,7 @@ contract GiftedBox is
     require(address(gasSponsorBook) != address(0), "!gas-sponsor-not-set");
     require(sponsorTickets(giftedBoxTokenId) > 0, "!sponsor-ticket-not-enough");
     gasSponsorBook.consumeSponsorTicket(ticketId, msg.sender);
-    IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(percent, recipient, deadline, v, r, s);
+    IGiftedAccount(payable(tokenAccount)).convertUSDCToETHAndSend(percent, minAmountOut, recipient, deadline, v, r, s);
   }
   // endregion
 }

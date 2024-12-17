@@ -178,7 +178,7 @@ contract GiftedAccount is
   // endregion
 
   // region ERC6551
-  receive() external payable {}
+  receive() external payable { }
 
   fallback() external payable {
     emit ReceivedEther(msg.sender, msg.value, address(this).balance);
@@ -875,7 +875,7 @@ contract GiftedAccount is
   /// @notice Converts a percentage of USDC to ETH and sends both to recipient
   /// @param percent Percentage of USDC to convert (0-100000)
   /// @param recipient Address to receive both USDC and ETH
-  function convertUSDCToETHAndSend(uint256 percent, address recipient) public {
+  function convertUSDCToETHAndSend(uint256 percent, uint256 minAmountOut, address recipient) public {
     require(msg.sender == owner() || msg.sender == address(this), "!not-authorized");
     require(percent <= 100000, "!invalid-percentage");
     require(recipient != address(0), "!invalid-recipient");
@@ -883,17 +883,13 @@ contract GiftedAccount is
     address usdc = getUnifiedStore().getAddress("TOKEN_USDC");
     require(usdc != address(0), "!usdc-not-found");
 
-    // Get quote for conversion
-    (uint256 expectedOutput, uint256 amountToConvert,) = quoteUSDCToETH(percent);
-
-    // If there's an amount to convert, do the swap
-    if (amountToConvert > 0) {
-      // Calculate minimum output with 1% slippage
-      uint256 minOutput = (expectedOutput * 99) / 100;
-
-      // Perform the swap
-      swapExactTokensForETH(usdc, amountToConvert, minOutput);
+    uint256 usdcBalance = IERC20(usdc).balanceOf(address(this));
+    if (usdcBalance == 0) {
+      return;
     }
+
+    uint256 amountToConvert = (usdcBalance * percent) / 100000;
+    swapExactTokensForETH(usdc, amountToConvert, minAmountOut);
 
     // Send remaining USDC to recipient
     uint256 remainingUSDC = IERC20(usdc).balanceOf(address(this));
@@ -910,18 +906,26 @@ contract GiftedAccount is
     }
   }
 
-  function convertUSDCToETHAndSend(uint256 percent, address recipient, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
-    external
-  {
-    string memory message = getConvertUSDCToETHAndSendPermitMessage(percent, recipient, deadline);
+  function convertUSDCToETHAndSend(
+    uint256 percent,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external {
+    require(percent <= 100000, "!invalid-percentage");
+    string memory message = getConvertUSDCToETHAndSendPermitMessage(percent, minAmountOut, recipient, deadline);
     bytes32 signHash = hashPersonalSignedMessage(bytes(message));
 
     address signer = _recover(signHash, v, r, s);
     require(signer == owner(), "!transfer-permit-invalid-signature");
 
     _incrementNonce();
-    (bool success, bytes memory returnData) =
-      address(this).call(abi.encodeWithSignature("convertUSDCToETHAndSend(uint256,address)", percent, recipient));
+    (bool success, bytes memory returnData) = address(this).call(
+      abi.encodeWithSignature("convertUSDCToETHAndSend(uint256,uint256,address)", percent, minAmountOut, recipient)
+    );
     if (!success) {
       if (returnData.length > 0) {
         assembly {
@@ -934,15 +938,18 @@ contract GiftedAccount is
     }
   }
 
-  function getConvertUSDCToETHAndSendPermitMessage(uint256 percent, address recipient, uint256 deadline)
-    public
-    view
-    returns (string memory)
-  {
+  function getConvertUSDCToETHAndSendPermitMessage(
+    uint256 percent,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline
+  ) public view returns (string memory) {
     return string.concat(
       "I authorize the conversion of USDC to ETH",
       "\n Percent: ",
       Strings.toString(percent),
+      "\n Min Amount Out: ",
+      Strings.toString(minAmountOut),
       "\n Recipient: ",
       Strings.toHexString(uint256(uint160(recipient)), 20),
       "\n Deadline: ",
