@@ -23,6 +23,8 @@ contract UpgradeSwapGiftedBox is Script {
     address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
     unifiedStore = UnifiedStore(unifiedStoreAddress);
 
+    GiftedAccountGuardian guardian = GiftedAccountGuardian(getAddressFromConfig("GiftedAccountGuardian"));
+
     // Deploy new GiftedBox implementation
     address newGiftedBoxImplementation = address(new GiftedBox());
     unifiedStore.setAddress("GiftedBoxImplementation", newGiftedBoxImplementation);
@@ -37,19 +39,9 @@ contract UpgradeSwapGiftedBox is Script {
     address newGiftedAccountImplementation = address(new GiftedAccount());
     unifiedStore.setAddress("GiftedAccountImplementation", newGiftedAccountImplementation);
     console.log("UnifiedStore set new GiftedAccount implementation:", newGiftedAccountImplementation);
-
-    // Set up GiftedAccountGuardian
-    GiftedAccountGuardian guardian = new GiftedAccountGuardian();
-    unifiedStore.setAddress("GiftedAccountGuardian", address(guardian));
+    // set new GiftedAccount implementation
     guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
     console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
-
-    guardian.setUnifiedStore(unifiedStoreAddress);
-    console.log("GiftedAccountGuardian set UnifiedStore:", unifiedStoreAddress);
-
-    // Set manager as executor in GiftedAccountGuardian
-    address manager = getAddressFromConfig("manager");
-    guardian.setExecutor(manager, true);
 
     vm.stopBroadcast();
   }
