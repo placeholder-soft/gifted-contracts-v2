@@ -25,7 +25,7 @@ contract UpgradeGiftedBox is Script {
     keys[0] = "UNISWAP_ROUTER";
     keys[1] = "UNISWAP_QUOTER";
     keys[2] = "TOKEN_WETH";
-    keys[3] = "TOKEN_USDC";
+    // keys[3] = "TOKEN_USDC";
 
     if (block.chainid == 11155111) {
       values[0] = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E;
@@ -41,6 +41,7 @@ contract UpgradeGiftedBox is Script {
     } else if (block.chainid == 84532) {
       values[0] = 0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4;
       values[1] = 0xC5290058841028F1614F3A6F0F5816cAd0df5E27;
+      values[2] = 0x4200000000000000000000000000000000000006;
     } else if (block.chainid == 42161) {
       values[0] = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
       values[1] = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
