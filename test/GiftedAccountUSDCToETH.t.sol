@@ -46,6 +46,11 @@ contract MockUSDC is ERC20 {
 
 contract MockSwapRouter is ISwapRouter {
   uint256 private constant ETH_PRICE = 2000; // 1 ETH = 2000 USDC
+  MockWETH public immutable weth;
+
+  constructor(address _weth) {
+    weth = MockWETH(_weth);
+  }
 
   function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut) {
     // Get USDC decimals dynamically
@@ -56,14 +61,13 @@ contract MockSwapRouter is ISwapRouter {
     // Transfer USDC from sender to this contract
     IERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
 
-    // // Transfer ETH to recipient
-    // (bool success,) = payable(params.recipient).call{ value: amountOut }("");
-    // require(success, "ETH transfer failed");
+    // Mint WETH to recipient
+    weth.deposit{value: amountOut}();
+    require(weth.transfer(params.recipient, amountOut), "WETH transfer failed");
 
-    IERC20(params.tokenOut).transfer(params.recipient, amountOut);
+    return amountOut;
   }
 
-  // Function to receive ETH
   receive() external payable { }
 }
 
@@ -116,9 +120,9 @@ contract GiftedAccountUSDCToETHTest is Test {
     // Deploy mock contracts
     mockNFT = new MockERC721();
     mockUSDC = new MockUSDC();
-    mockQuoter = new MockQuoter();
-    mockRouter = new MockSwapRouter();
     mockWETH = new MockWETH();
+    mockQuoter = new MockQuoter();
+    mockRouter = new MockSwapRouter(address(mockWETH));
     store = new UnifiedStore();
 
     // Deploy and setup guardian
@@ -166,7 +170,8 @@ contract GiftedAccountUSDCToETHTest is Test {
 
     mockUSDC.mint(address(mockRouter), 99999 ether);
     // Fund the router with ETH for swaps
-    vm.deal(address(mockRouter), 2000 ether);
+    vm.deal(address(mockRouter), 1000 ether);
+    vm.deal(address(mockWETH), 1000 ether); // Add ETH balance to MockWETH
 
     vm.prank(address(mockRouter));
     (bool success,) = address(mockWETH).call{ value: 1000 ether }("");

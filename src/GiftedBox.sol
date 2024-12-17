@@ -555,7 +555,6 @@ contract GiftedBox is
   // region Token Conversions
   function quoteUSDCToETH(uint256 giftedBoxTokenId, uint256 percent)
     external
-    view
     returns (uint256 expectedOutput, uint256 amountIn, uint256 amountNoSwap)
   {
     address tokenAccount = tokenAccountAddress(giftedBoxTokenId);
