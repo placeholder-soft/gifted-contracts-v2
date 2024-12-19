@@ -12,6 +12,4 @@ interface IGiftedAccountGuardian {
   function setExecutor(address executor, bool trusted) external;
 
   function getImplementation() external view returns (address);
-
-  function getUnifiedStore() external view returns (IUnifiedStore);
 }

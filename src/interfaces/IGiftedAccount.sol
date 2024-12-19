@@ -70,16 +70,24 @@ interface IGiftedAccount {
 
   function quoteUSDCToETH(uint256 percent)
     external
-    view
     returns (uint256 expectedOutput, uint256 amountIn, uint256 amountNoSwap);
 
-  function convertUSDCToETHAndSend(uint256 percent, address recipient) external;
+  function convertUSDCToETHAndSend(uint256 percent, uint256 minAmountOut, address recipient) external;
 
-  function getConvertUSDCToETHAndSendPermitMessage(uint256 percent, address recipient, uint256 deadline)
-    external
-    view
-    returns (string memory);
+  function getConvertUSDCToETHAndSendPermitMessage(
+    uint256 percent,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline
+  ) external view returns (string memory);
 
-  function convertUSDCToETHAndSend(uint256 percent, address recipient, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
-    external;
+  function convertUSDCToETHAndSend(
+    uint256 percent,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
 }

@@ -34,6 +34,11 @@ function getChainById(networkId: string): Chain | undefined {
 
   const chainName = chain.name.toUpperCase().replace(/ /g, "_");
   const envRpcUrl = process.env[`${chainName}_RPC_URL`];
+  console.log(
+    `Using RPC URL from environment variable ${chainName}_RPC_URL: ${
+      envRpcUrl ? envRpcUrl : "not set"
+    }`
+  )
 
   if (envRpcUrl) {
     const clonedChain = { ...chain };
@@ -61,49 +66,69 @@ async function updateConfig() {
   );
   const addresses = JSON.parse(fs.readFileSync(addressesPath, "utf-8"));
 
-  for (const [networkId, networkData] of Object.entries(addresses)) {
-    const unifiedStoreAddress = (networkData as { UnifiedStore?: Address })
-      .UnifiedStore;
+  // Process all networks concurrently
+  await Promise.all(
+    Object.entries(addresses).map(async ([networkId, networkData]) => {
+      const unifiedStoreAddress = (networkData as { UnifiedStore?: Address })
+        .UnifiedStore;
 
-    if (!unifiedStoreAddress) {
-      console.error(`UnifiedStore address not found for network ${networkId}`);
-      continue;
-    }
-
-    const chain = getChainById(networkId);
-    if (!chain) {
-      console.error(`Chain not found for network ID ${networkId}`);
-      continue;
-    }
-
-    // Create a public client
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(process.env.RPC_URL),
-    });
-
-    try {
-      // Fetch addresses for each key and update the configuration
-      for (const key of keys) {
-        const address = await publicClient.readContract({
-          address: unifiedStoreAddress,
-          abi: abiUnifiedStore,
-          functionName: "getAddress",
-          args: [key],
-        });
-        addresses[networkId][key] = address;
+      if (!unifiedStoreAddress) {
+        console.error(`UnifiedStore address not found for network ${networkId}`);
+        return;
       }
 
-      console.log(
-        `Configuration updated successfully for network ${deployEnv} - ${networkId}`
-      );
-    } catch (error) {
-      console.error(
-        `Error updating configuration for network ${deployEnv} - ${networkId}:`,
-        error
-      );
-    }
-  }
+      const chain = getChainById(networkId);
+      if (!chain) {
+        console.error(`Chain not found for network ID ${networkId}`);
+        return;
+      }
+
+      // Create a public client
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(),
+      });
+
+      try {
+        // Fetch addresses for all keys concurrently
+        const keyResults = await Promise.all(
+          keys.map(async (key) => {
+            try {
+              const address = await publicClient.readContract({
+                address: unifiedStoreAddress,
+                abi: abiUnifiedStore,
+                functionName: "getAddress",
+                args: [key],
+              });
+              return { key, address };
+            } catch (error) {
+              console.error(
+                `Error fetching address for key ${key} on network ${networkId}:`,
+                error
+              );
+              return null;
+            }
+          })
+        );
+
+        // Update addresses with successful results
+        keyResults.forEach((result) => {
+          if (result) {
+            addresses[networkId][result.key] = result.address;
+          }
+        });
+
+        console.log(
+          `Configuration updated successfully for network ${deployEnv} - ${networkId}`
+        );
+      } catch (error) {
+        console.error(
+          `Error updating configuration for network ${deployEnv} - ${networkId}:`,
+          error
+        );
+      }
+    })
+  );
 
   // Write the updated configuration back to the file
   fs.writeFileSync(addressesPath, JSON.stringify(addresses, null, 2));
