@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import { Script, console } from "forge-std/Script.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/token/ERC721/IERC721.sol";
 import { NFTVault } from "../src/NFTVault.sol";
 import { GiftedBox } from "../src/GiftedBox.sol";
 import { GiftedAccount } from "../src/GiftedAccount.sol";

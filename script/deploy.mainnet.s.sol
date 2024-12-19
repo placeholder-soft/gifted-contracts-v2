@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import { Script, console } from "forge-std/Script.sol";
 import { GiftedBox } from "../src/GiftedBox.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/mocks/MockERC721.sol";
 import "../src/mocks/MockERC1155.sol";
 import "../src/GiftedAccount.sol";
