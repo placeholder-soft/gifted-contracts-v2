@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/proxy/Proxy.sol";
+import "@openzeppelin/contracts/proxy/Proxy.sol";
 
 import "./interfaces/IGiftedAccountGuardian.sol";
 

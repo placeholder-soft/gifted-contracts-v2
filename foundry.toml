@@ -53,5 +53,3 @@ zora_sepolia = { key = "verifyContract", url = "https://api.routescan.io/v2/netw
 zora = { key = "verifyContract", url = "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan" }
 
 plume_testnet = { key = "verifyContract", url = "https://testnet-explorer.plumenetwork.xyz/api" }
-
-abstract_testnet = { key = "verifyContract", url = "https://api-explorer-verify.testnet.abs.xyz/contract_verification" }
