@@ -76,7 +76,7 @@ contract DeploySepolia is Script {
 
     require(address(guardian) != address(0), "Guardian deployment failed");
     guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
-    guardian.setUnifiedStore(address(unifiedStore));
+    // guardian.setUnifiedStore(address(unifiedStore));
 
     // Deploy proxy with validation
     GiftedAccountProxy accountProxy = new GiftedAccountProxy(address(guardian));

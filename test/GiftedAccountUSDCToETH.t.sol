@@ -13,7 +13,7 @@ import "../src/GiftedAccountProxy.sol";
 import "erc6551/ERC6551Registry.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/interfaces/ISwapRouter.sol";
 import "../src/interfaces/IQuoter.sol";
