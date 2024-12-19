@@ -1,6 +1,6 @@
 [tools]
 # foundry = "nightly-5902a6fa87600cf0cbe44e689c97479c16fd474e"
-foundry-zksync = "nightly-883034d4851db9d58a91d54953aeb62c60890243"
+foundry-zksync = "nightly-17812341b8af9ee14d8b10a18309ad0ca6b52ae2"
 pnpm = "9.8.0"
 nodejs = "22.7.0"
 
