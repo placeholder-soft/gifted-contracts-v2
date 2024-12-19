@@ -1,48 +1,63 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Create2.sol";
 
 import "../interfaces/IERC6551Registry.sol";
-import "./lib/ERC6551BytecodeLib.sol";
+import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
+
 
 contract ERC6551Registry is IERC6551Registry {
   error InitializationFailed();
 
-  function createAccount(
-    address implementation,
+function createAccount(
+    bytes32 bytecodeHash,
+    bytes32 salt,
     uint256 chainId,
     address tokenContract,
-    uint256 tokenId,
-    uint256 salt,
-    bytes calldata initData
-  ) external returns (address) {
-    bytes memory code = ERC6551BytecodeLib.getCreationCode(implementation, chainId, tokenContract, tokenId, salt);
+    uint256 tokenId
+  ) external returns (address accountAddress) {
+    address newAccount = account(bytecodeHash, salt, chainId, tokenContract, tokenId);
+    if (newAccount.code.length == 0) {
+      (bool success, bytes memory returnData) = SystemContractsCaller
+        .systemCallWithReturndata(
+          uint32(gasleft()),
+          address(DEPLOYER_SYSTEM_CONTRACT),
+          uint128(0),
+          abi.encodeCall(
+            DEPLOYER_SYSTEM_CONTRACT.create2,
+            (salt, bytecodeHash, abi.encode(chainId, tokenContract, tokenId))
+          )
+        );
+      if (!success) { revert AccountCreationFailed(); }
 
-    address _account = Create2.computeAddress(bytes32(salt), keccak256(code));
+      emit ERC6551AccountCreated(newAccount, bytecodeHash, salt, chainId, tokenContract, tokenId);
 
-    if (_account.code.length != 0) return _account;
-
-    emit AccountCreated(_account, implementation, chainId, tokenContract, tokenId, salt);
-
-    _account = Create2.deploy(0, bytes32(salt), code);
-
-    if (initData.length != 0) {
-      (bool success,) = _account.call(initData);
-      if (!success) revert InitializationFailed();
+      accountAddress = abi.decode(returnData, (address));
+    } else {
+      accountAddress = newAccount;
     }
-
-    return _account;
   }
 
-  function account(address implementation, uint256 chainId, address tokenContract, uint256 tokenId, uint256 salt)
-    external
-    view
-    returns (address)
-  {
-    bytes32 bytecodeHash =
-      keccak256(ERC6551BytecodeLib.getCreationCode(implementation, chainId, tokenContract, tokenId, salt));
+  function account(
+    bytes32 bytecodeHash,
+    bytes32 salt,
+    uint256 chainId,
+    address tokenContract,
+    uint256 tokenId
+  ) public returns (address accountAddress) {
+    (bool success, bytes memory returnData) = SystemContractsCaller
+      .systemCallWithReturndata(
+        uint32(gasleft()),
+        address(DEPLOYER_SYSTEM_CONTRACT),
+        uint128(0),
+        abi.encodeCall(
+          DEPLOYER_SYSTEM_CONTRACT.getNewAddressCreate2,
+          (msg.sender, bytecodeHash, salt, abi.encode(chainId, tokenContract, tokenId))
+        )
+      );
+    if (!success) { revert AccountComputeFailed(); }
 
-    return Create2.computeAddress(bytes32(salt), bytecodeHash);
+    accountAddress = abi.decode(returnData, (address));
   }
 }
