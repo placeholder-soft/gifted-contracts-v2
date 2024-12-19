@@ -700,7 +700,8 @@ contract GiftedAccount is
     require(address(this).balance >= amount, "!insufficient-balance");
     require(to != address(0), "!zero-recipient");
     require(to != address(this), "!self-recipient");
-    to.transfer(amount);
+    (bool success,) = to.call{ value: amount }("");
+    require(success, "!transfer-ether-failed");
     emit TransferEtherPermit(address(this), to, amount, deadline, nonce(), signer, msg.sender);
   }
 
