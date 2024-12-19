@@ -13,8 +13,9 @@ import "../src/erc6551/evm/ERC6551Registry.sol";
 import "../src/GasSponsorBook.sol";
 import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
+import "../src/NFTVault.sol";
 
-contract DeployMainnet is Script {
+contract DeploySepolia is Script {
   MockERC721 internal mockERC721;
   MockERC1155 internal mockERC1155;
   GiftedBox internal giftedBox;
@@ -22,56 +23,82 @@ contract DeployMainnet is Script {
   GiftedAccountGuardian internal guardian;
   GiftedAccount internal giftedAccount;
   Vault public vault;
+  NFTVault public nftVault;
   GasSponsorBook public sponsorBook;
   UnifiedStore public unifiedStore;
+  address internal giftedBoxImplementation;
 
-  address public gasRelayer = address(0xe335Cf211aA52f3a84257F61dde34C3BDFced560);
-  address public deployer = address(0xf53f105E90b3e9Ea928926A5A78E921D8168e213);
+  address public gasRelayer = address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
+  address public deployer = address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
+
+  uint256 internal currentChainId;
 
   function run() public {
-    update_fee_ticket();
+    // Get current chain ID
+    currentChainId = block.chainid;
+    console.log("Deploying to chain ID:", currentChainId);
+
+    // deploy_contracts();
+    // deploy_artwork();
+
+    deploy_test();
   }
 
-  function add_fund_vault() public {
+  function deploy_test() internal {
     vm.startBroadcast(deployer);
-    vault = Vault(0xF74d7124909f634B38799d871fD9f633b223b2C6);
-    vault.transferIn{ value: 0.01 ether }(address(0), deployer, 0.01 ether);
-    vm.stopBroadcast();
-  }
-
-  function update_fee_ticket() public {
-    vm.startBroadcast(deployer);
-    sponsorBook = GasSponsorBook(0xbec73A3ed80216efbc5203DC014F183F582E97c0);
-    sponsorBook.setFeePerSponsorTicket(0.0000006 ether);
+    unifiedStore = new UnifiedStore();
     vm.stopBroadcast();
   }
 
   function deploy_artwork() internal {
     vm.startBroadcast();
     mockERC721 = new MockERC721();
-    mockERC721.setBaseURI("https://app.gifted.art/api/nfts/");
+    mockERC721.setBaseURI("https://staging.gifted.art/api/nfts/");
 
     mockERC1155 = new MockERC1155();
-    mockERC1155.setURI("https://app.gifted.art/api/nfts/");
+    mockERC1155.setURI("https://staging.gifted.art/api/nfts/");
     vm.stopBroadcast();
   }
 
   function deploy_contracts() internal {
     vm.startBroadcast(deployer);
+
+    // Add validation for deployer address
+    require(deployer != address(0), "Deployer address cannot be zero");
+    console.log("Deploying contracts with deployer:", deployer);
+
     unifiedStore = new UnifiedStore();
+    // Deploy guardian and log
     guardian = new GiftedAccountGuardian();
+    console.log("GiftedAccountGuardian deployed at:", address(guardian));
+
+    // Deploy and set implementation
     GiftedAccount giftedAccountImpl = new GiftedAccount();
+    console.log("GiftedAccount implementation deployed at:", address(giftedAccountImpl));
+
+    require(address(guardian) != address(0), "Guardian deployment failed");
     guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
+    // guardian.setUnifiedStore(address(unifiedStore));
 
+    // Deploy proxy with validation
     GiftedAccountProxy accountProxy = new GiftedAccountProxy(address(guardian));
+    require(address(accountProxy) != address(0), "Proxy deployment failed");
     giftedAccount = GiftedAccount(payable(address(accountProxy)));
+    console.log("GiftedAccount proxy deployed at:", address(giftedAccount));
 
+    // Continue with rest of deployments with logging
     registry = new ERC6551Registry();
+    console.log("ERC6551Registry deployed at:", address(registry));
 
-    address implementation = address(new GiftedBox());
+    giftedBoxImplementation = address(new GiftedBox());
+    console.log("GiftedBox implementation deployed at:", giftedBoxImplementation);
+
+    require(giftedBoxImplementation != address(0), "GiftedBox implementation deployment failed");
     bytes memory data = abi.encodeCall(GiftedBox.initialize, deployer);
-    address proxy = address(new ERC1967Proxy(implementation, data));
+    address proxy = address(new ERC1967Proxy(giftedBoxImplementation, data));
+    require(proxy != address(0), "GiftedBox proxy deployment failed");
     giftedBox = GiftedBox(proxy);
+    console.log("GiftedBox proxy deployed at:", address(giftedBox));
 
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
@@ -88,9 +115,12 @@ contract DeployMainnet is Script {
     sponsorBook.grantRole(sponsorBook.SPONSOR_ROLE(), address(giftedBox));
     sponsorBook.grantRole(sponsorBook.CONSUMER_ROLE(), gasRelayer);
 
+    nftVault = new NFTVault();
+    nftVault.grantManagerRole(gasRelayer);
 
-    string[] memory keys = new string[](6);
-    address[] memory addresses = new address[](6);
+
+    string[] memory keys = new string[](7);
+    address[] memory addresses = new address[](7);
     keys[0] = "GiftedAccountGuardian";
     addresses[0] = address(guardian);
 
@@ -108,6 +138,9 @@ contract DeployMainnet is Script {
 
     keys[5] = "ERC6551Registry";
     addresses[5] = address(registry);
+
+    keys[6] = "NFTVault";
+    addresses[6] = address(nftVault);
 
     unifiedStore.setAddresses(keys, addresses);
 

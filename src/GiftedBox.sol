@@ -15,7 +15,7 @@ import "./GiftedAccountGuardian.sol";
 import "./interfaces/IGasSponsorBook.sol";
 import "./interfaces/IGiftedBox.sol";
 import "./interfaces/IGiftedAccount.sol";
-import "erc6551/ERC6551Registry.sol";
+import "./erc6551/evm/ERC6551Registry.sol";
 
 /// @custom:security-contact zitao@placeholdersoft.com
 contract GiftedBox is

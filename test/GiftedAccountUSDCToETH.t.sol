@@ -10,7 +10,7 @@ import "../src/GiftedBox.sol";
 import { GiftedAccount, IERC6551Account } from "../src/GiftedAccount.sol";
 import "../src/GiftedAccountGuardian.sol";
 import "../src/GiftedAccountProxy.sol";
-import "erc6551/ERC6551Registry.sol";
+import "../src/erc6551/evm/ERC6551Registry.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
