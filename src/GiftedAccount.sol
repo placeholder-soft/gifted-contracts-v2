@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/utils/introspection/IERC165.sol";
-import "@openzeppelin/utils/Strings.sol";
-import "@openzeppelin/utils/Address.sol";
-import "@openzeppelin/utils/cryptography/SignatureChecker.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import "@openzeppelin/token/ERC721/IERC721.sol";
-import "@openzeppelin/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/token/ERC1155/IERC1155Receiver.sol";
-import "@openzeppelin/interfaces/IERC1271.sol";
-import "@openzeppelin/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "./erc6551/interfaces/IERC6551Account.sol";
 import "./erc6551/evm/lib/ERC6551AccountLib.sol";
-import "@openzeppelin/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IGiftedBox.sol";
-import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./interfaces/ISwapRouter.sol";
 import "./interfaces/IUnifiedStore.sol";
 import "./interfaces/IQuoter.sol";

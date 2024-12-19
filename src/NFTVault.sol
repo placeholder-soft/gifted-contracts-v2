@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/token/ERC721/IERC721.sol";
-import "@openzeppelin/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/interfaces/IERC1155Receiver.sol";
-import "@openzeppelin/access/AccessControl.sol";
-import "@openzeppelin/interfaces/IERC165.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 contract NFTVault is AccessControl, IERC721Receiver, IERC1155Receiver {
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");

@@ -4,20 +4,20 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
-import "@openzeppelin/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../src/GiftedBox.sol";
 import { GiftedAccount, IERC6551Account } from "../src/GiftedAccount.sol";
 import "../src/GiftedAccountGuardian.sol";
 import "../src/GiftedAccountProxy.sol";
 import "../src/erc6551/evm/ERC6551Registry.sol";
-import "@openzeppelin/token/ERC721/ERC721.sol";
-import "@openzeppelin/token/ERC1155/ERC1155.sol";
-import "@openzeppelin-contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../src/Vault.sol";
 import "../src/GasSponsorBook.sol";
 import "../src/UnifiedStore.sol";
-import "@openzeppelin/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockERC721 is ERC721 {
   constructor() ERC721("MockERC721", "M721") { }
