@@ -1,0 +1,4 @@
+[tools]
+foundry = "nightly-5902a6fa87600cf0cbe44e689c97479c16fd474e"
+pnpm = "9.8.0"
+nodejs = "22.7.0"
