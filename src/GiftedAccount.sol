@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "./erc6551/interfaces/IERC6551Account.sol";
-import "./erc6551/lib/ERC6551AccountLib.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
@@ -49,10 +48,20 @@ contract GiftedAccount is
 
   IUnifiedStore private _unifiedStore;
 
+  uint256 internal _erc6551ChainId;
+  address internal _erc6551Contract;
+  uint256 internal _erc6551TokenId;
+
   // endregion
 
-  function initialize(address unifiedStore) public initializer {
+  function initialize(address unifiedStore, uint256 erc6551ChainId, address erc6551Contract, uint256 erc6551TokenId)
+    public
+    initializer
+  {
     _unifiedStore = IUnifiedStore(unifiedStore);
+    _erc6551ChainId = erc6551ChainId;
+    _erc6551Contract = erc6551Contract;
+    _erc6551TokenId = erc6551TokenId;
   }
 
   function getGuardian() public view returns (IGiftedAccountGuardian) {
@@ -209,8 +218,8 @@ contract GiftedAccount is
     return results;
   }
 
-  function token() public view returns (uint256, address, uint256) {
-    return ERC6551AccountLib.token();
+  function token() public view returns (uint256 chainId, address tokenContract, uint256 tokenId) {
+    return (_erc6551ChainId, _erc6551Contract, _erc6551TokenId);
   }
 
   function nonce() public view returns (uint256) {
