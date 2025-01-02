@@ -22,16 +22,23 @@ contract UpgradeGiftedBox is Script {
     upgrade_gifted_box(newGiftedBoxImplementation);
     set_new_gifted_box_address(newGiftedBoxImplementation);
 
-    address newGiftedAccountImplementation = deploy_new_gifted_account();
-    set_new_gifted_account_address(newGiftedAccountImplementation);
+    proxy = ERC1967Proxy(payable(getAddressFromConfig("GiftedBox")));
 
-    address guardianAddress = getAddressFromConfig("GiftedAccountGuardian");
-    GiftedAccountGuardian guardian = GiftedAccountGuardian(guardianAddress);
-    guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
-    console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
+    // address newGiftedAccountImplementation = deploy_new_gifted_account();
+    // set_new_gifted_account_address(newGiftedAccountImplementation);
 
-    address manager = getAddressFromConfig("manager");
-    guardian.setExecutor(manager, true);
+    // address guardianAddress = getAddressFromConfig("GiftedAccountGuardian");
+    // GiftedAccountGuardian guardian = GiftedAccountGuardian(guardianAddress);
+    // guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
+    // console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
+
+    // address manager = getAddressFromConfig("manager");
+    // guardian.setExecutor(manager, true);
+
+
+    GiftedBox(address(proxy)).setBaseURI("https://giftedbox.xyz/");
+
+    console.log("GiftedBox baseURI set to:", GiftedBox(address(proxy)).baseURI());
 
     vm.stopBroadcast();
   }
