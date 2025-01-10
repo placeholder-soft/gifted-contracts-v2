@@ -1,5 +1,5 @@
 [tools]
-foundry-zksync = "nightly-17812341b8af9ee14d8b10a18309ad0ca6b52ae2"
+foundry-zksync = "nightly-1b49d913be441cff8504432ff1c6da88e0f1ac28"
 pnpm = "9.8.0"
 nodejs = "22.7.0"
 

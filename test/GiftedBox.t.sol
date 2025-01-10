@@ -95,6 +95,11 @@ contract GiftedBoxTest is Test, TestEvents {
     address proxy = address(new ERC1967Proxy(implementation, data));
     giftedBox = GiftedBox(proxy);
 
+    // Read bytecode hash from the compiled artifact
+    string memory artifact = vm.readFile("zkout/GiftedAccount.sol/GiftedAccount.json");
+    bytes32 accountBytecodeHash = vm.parseJsonBytes32(artifact, ".hash");
+    giftedBox.setAccountBytecodeHash(accountBytecodeHash);
+
     giftedBox.setAccountImpl(payable(address(giftedAccount)));
     giftedBox.setRegistry(address(registry));
     giftedBox.setUnifiedStore(address(guardian));
@@ -217,7 +222,18 @@ contract GiftedBoxTest is Test, TestEvents {
     vm.prank(giftSender);
     giftedBox.sendGift(giftSender, giftRecipient);
 
-    address account = registry.account(address(giftedAccount), block.chainid, address(giftedBox), tokenId, 0);
+    bytes32 salt = keccak256(abi.encode(
+      block.chainid,
+      address(giftedBox),
+      giftedBox.accountBytecodeHash(),
+      tokenId
+    ));
+
+    address account = registry.account(
+      giftedBox.accountBytecodeHash(),
+      salt,
+      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+    );
 
     address tokenAccount = giftedBox.tokenAccountAddress(tokenId);
     assertTrue(account != address(0));
@@ -914,5 +930,64 @@ contract GiftedBoxTest is Test, TestEvents {
     assertEq(mockERC721.balanceOf(address(tokenAccount)), 0);
     assertEq(mockERC1155.balanceOf(address(tokenAccount), erc1155TokenId), 0);
     assertEq(address(tokenAccount).balance, 0);
+  }
+
+  function test_TokenAccountAddress() public {
+    uint256 tokenId = 1;
+
+    // Calculate expected salt
+    bytes32 expectedSalt = keccak256(abi.encode(
+      block.chainid,
+      address(giftedBox),
+      giftedBox.accountBytecodeHash(),
+      tokenId
+    ));
+
+    // Get account address
+    address account = registry.account(
+      giftedBox.accountBytecodeHash(),
+      expectedSalt,
+      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+    );
+
+    // Verify account address matches GiftedBox's calculation
+    assertEq(account, giftedBox.tokenAccountAddress(tokenId));
+    assertNotEq(account, address(0));
+  }
+
+  function test_DifferentTokensHaveDifferentAccounts() public {
+    uint256 tokenId1 = 1;
+    uint256 tokenId2 = 2;
+
+    address account1 = giftedBox.tokenAccountAddress(tokenId1);
+    address account2 = giftedBox.tokenAccountAddress(tokenId2);
+
+    assertNotEq(account1, account2, "Different tokens should have different accounts");
+  }
+
+  function test_AccountAddressesAreConsistent() public {
+    uint256 tokenId = 1;
+    address account1 = giftedBox.tokenAccountAddress(tokenId);
+    address account2 = giftedBox.tokenAccountAddress(tokenId);
+
+    assertEq(account1, account2, "Same token should have consistent account address");
+  }
+
+  function test_RevertWhenBytecodeHashNotSet() public {
+    // Deploy new GiftedBox without setting bytecode hash
+    address implementation = address(new GiftedBox());
+    bytes memory data = abi.encodeCall(GiftedBox.initialize, address(this));
+    address proxy = address(new ERC1967Proxy(implementation, data));
+    GiftedBox newGiftedBox = GiftedBox(proxy);
+
+    vm.expectRevert("!bytecode-hash-not-set");
+    newGiftedBox.tokenAccountAddress(1);
+  }
+
+  function test_BytecodeHashFromArtifact() public {
+    string memory artifact = vm.readFile("zkout/GiftedAccount.sol/GiftedAccount.json");
+    bytes32 expectedHash = vm.parseJsonBytes32(artifact, ".hash");
+
+    assertEq(giftedBox.accountBytecodeHash(), expectedHash, "Bytecode hash should match artifact");
   }
 }

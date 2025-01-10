@@ -14,13 +14,13 @@ interface IERC6551Registry {
 
   function createAccount(
     bytes32 bytecodeHash,
-    uint256 salt,
+    bytes32 salt,
     bytes calldata initData
   ) external returns (address);
 
   function account(
     bytes32 bytecodeHash,
-    uint256 salt,
+    bytes32 salt,
     bytes calldata initData
   ) external view returns (address);
 }

@@ -71,6 +71,7 @@ contract GiftedBox is
     address signer,
     address relayer
   );
+  event AccountBytecodeHashUpdated(bytes32 indexed newAccountBytecodeHash);
   // endregion
 
   // region Storage
@@ -81,6 +82,7 @@ contract GiftedBox is
   GiftedAccountGuardian public guardian; // guardian is deprecated
   IGasSponsorBook public gasSponsorBook;
   IVault public vault;
+  bytes32 public accountBytecodeHash;
 
   // added unifed store on swap upgrade
   IUnifiedStore public unifiedStore;
@@ -106,6 +108,12 @@ contract GiftedBox is
     _grantRole(UPGRADER_ROLE, defaultAdmin);
     _grantRole(CLAIMER_ROLE, defaultAdmin);
   }
+
+  function setAccountBytecodeHash(bytes32 _bytecodeHash) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    accountBytecodeHash = _bytecodeHash;
+    emit AccountBytecodeHashUpdated(_bytecodeHash);
+  }
+
   // endregion
 
   // region Admin Functions
@@ -167,8 +175,22 @@ contract GiftedBox is
   // endregion
 
   // region View Functions
+  function calculateSalt(uint256 tokenId) public view returns (bytes32) {
+    return keccak256(abi.encode(
+      block.chainid,
+      address(this),
+      accountBytecodeHash,
+      tokenId
+    ));
+  }
+
   function tokenAccountAddress(uint256 tokenId) public view returns (address) {
-    return registry.account(address(accountImpl), block.chainid, address(this), tokenId, 0);
+    require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
+    return registry.account(
+      accountBytecodeHash,
+      calculateSalt(tokenId),
+      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+    );
   }
 
   function generateTicketID(address account) public pure returns (uint256) {
@@ -188,7 +210,12 @@ contract GiftedBox is
     if (address(gasSponsorBook) == address(0)) {
       return 0;
     }
-    address tokenAccount = registry.account(address(accountImpl), block.chainid, address(this), tokenId, 0);
+    require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
+    address tokenAccount = registry.account(
+      accountBytecodeHash,
+      calculateSalt(tokenId),
+      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+    );
     uint256 ticket = generateTicketID(tokenAccount);
     return gasSponsorBook.sponsorTickets(ticket);
   }
@@ -201,13 +228,11 @@ contract GiftedBox is
 
   // region Internal Functions
   function createAccountIfNeeded(uint256 tokenId, address tokenAccount) internal {
+    require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
     if (tokenAccount.code.length == 0) {
       registry.createAccount(
-        address(accountImpl),
-        block.chainid,
-        address(this),
-        tokenId,
-        0,
+        accountBytecodeHash,
+        calculateSalt(tokenId),
         abi.encodeWithSignature("initialize(address)", address(unifiedStore))
       );
     }
@@ -276,7 +301,13 @@ contract GiftedBox is
 
     giftingRecords[tokenId] = GiftingRecord({ operator: operator, sender: sender, recipient: recipient });
 
-    address tokenAccount = registry.account(address(accountImpl), block.chainid, address(this), tokenId, 0);
+    bytes32 bytecodeHash = bytes32(uint256(uint160(address(accountImpl))));
+    bytes32 salt = calculateSalt(tokenId);
+    address tokenAccount = registry.account(
+      bytecodeHash,
+      salt,
+      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+    );
     createAccountIfNeeded(tokenId, tokenAccount);
     handleSponsorshipAndTransfer(tokenAccount, tokenId, msg.value - mintingFee);
 
