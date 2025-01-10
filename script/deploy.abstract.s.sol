@@ -40,8 +40,10 @@ contract DeploySepolia is Script {
 
     // deploy_contracts();
     // deploy_artwork();
-
-    deploy_test();
+    // deploy_test();
+    vm.startBroadcast(deployer);
+    registry = new ERC6551Registry();
+    vm.stopBroadcast();
   }
 
   function deploy_test() internal {
