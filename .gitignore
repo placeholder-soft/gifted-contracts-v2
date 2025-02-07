@@ -19,3 +19,5 @@ keystores/passwords/**
 !keystores/passwords/local
 
 node_modules/
+
+zkout

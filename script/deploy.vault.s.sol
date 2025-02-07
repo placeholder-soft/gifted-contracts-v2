@@ -11,40 +11,17 @@ contract DeployVault is Script {
 
   address public manager;
 
-  address public gasRelayer = address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
-  address public deployer = address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
-
+// dev
+  // address public gasRelayer = address(0x08E3dBFCF164Df355E36B65B4e71D9E66483e083);
+  // address public deployer = address(0xB7d030F7c6406446e703E73B3d1dd8611A2D87b6);
+// prod
+  address public gasRelayer = address(0xe335Cf211aA52f3a84257F61dde34C3BDFced560);
+  address public deployer = address(0xf53f105E90b3e9Ea928926A5A78E921D8168e213);
   function run() public {
-    deploy_contracts();
-    setup_roles();
-    // update_unified_store();
-  }
-
-  function deploy_contracts() internal {
-    // vm.startBroadcast(getAddressFromConfig("deployer"));
     vm.startBroadcast(deployer);
 
     nftVault = new NFTVault();
-
-    vm.stopBroadcast();
-  }
-
-  function setup_roles() internal {
-    // vm.startBroadcast(getAddressFromConfig("deployer"));
-
-    // manager = getAddressFromConfig("manager");
-    // nftVault.grantManagerRole(manager);
-
-    vm.startBroadcast(deployer);
-
     nftVault.grantManagerRole(gasRelayer);
-
-    vm.stopBroadcast();
-  }
-
-  function update_unified_store() internal {
-    vm.startBroadcast(getAddressFromConfig("deployer"));
-
     address unifiedStoreAddress = getAddressFromConfig("UnifiedStore");
     unifiedStore = UnifiedStore(unifiedStoreAddress);
 

@@ -15,7 +15,7 @@ import "./GiftedAccountGuardian.sol";
 import "./interfaces/IGasSponsorBook.sol";
 import "./interfaces/IGiftedBox.sol";
 import "./interfaces/IGiftedAccount.sol";
-import "erc6551/ERC6551Registry.sol";
+import "./erc6551/evm/ERC6551Registry.sol";
 
 /// @custom:security-contact zitao@placeholdersoft.com
 contract GiftedBox is
@@ -71,6 +71,7 @@ contract GiftedBox is
     address signer,
     address relayer
   );
+  event BaseURIUpdated(string newBaseURI);
   // endregion
 
   // region Storage
@@ -84,6 +85,9 @@ contract GiftedBox is
 
   // added unifed store on swap upgrade
   IUnifiedStore public unifiedStore;
+
+  // add baseURI
+  string public baseURI;
 
   // endregion
 
@@ -144,6 +148,11 @@ contract GiftedBox is
     emit UnifiedStoreUpdated(address(newUnifiedStore));
   }
 
+  function setBaseURI(string memory newBaseURI) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    baseURI = newBaseURI;
+    emit BaseURIUpdated(newBaseURI);
+  }
+
   // endregion
 
   // region Core ERC721 Functions
@@ -178,7 +187,9 @@ contract GiftedBox is
   function getGiftingRecord(uint256 tokenId) public view returns (GiftingRecord memory) {
     return giftingRecords[tokenId];
   }
-
+  function _baseURI() internal view virtual override returns (string memory) {
+    return baseURI;
+  }
   /**
    * @dev Checks if a given GiftedBox has a sponsor ticket.
    * @param tokenId The ID of the GiftedBox.

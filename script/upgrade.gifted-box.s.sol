@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { Script, console } from "forge-std/Script.sol";
 import "../src/GiftedBox.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import "@openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
 
@@ -22,16 +22,23 @@ contract UpgradeGiftedBox is Script {
     upgrade_gifted_box(newGiftedBoxImplementation);
     set_new_gifted_box_address(newGiftedBoxImplementation);
 
-    address newGiftedAccountImplementation = deploy_new_gifted_account();
-    set_new_gifted_account_address(newGiftedAccountImplementation);
+    proxy = ERC1967Proxy(payable(getAddressFromConfig("GiftedBox")));
 
-    address guardianAddress = getAddressFromConfig("GiftedAccountGuardian");
-    GiftedAccountGuardian guardian = GiftedAccountGuardian(guardianAddress);
-    guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
-    console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
+    // address newGiftedAccountImplementation = deploy_new_gifted_account();
+    // set_new_gifted_account_address(newGiftedAccountImplementation);
 
-    address manager = getAddressFromConfig("manager");
-    guardian.setExecutor(manager, true);
+    // address guardianAddress = getAddressFromConfig("GiftedAccountGuardian");
+    // GiftedAccountGuardian guardian = GiftedAccountGuardian(guardianAddress);
+    // guardian.setGiftedAccountImplementation(newGiftedAccountImplementation);
+    // console.log("GiftedAccountGuardian set new GiftedAccount implementation:", newGiftedAccountImplementation);
+
+    // address manager = getAddressFromConfig("manager");
+    // guardian.setExecutor(manager, true);
+
+
+    GiftedBox(address(proxy)).setBaseURI("https://giftedbox.xyz/");
+
+    console.log("GiftedBox baseURI set to:", GiftedBox(address(proxy)).baseURI());
 
     vm.stopBroadcast();
   }

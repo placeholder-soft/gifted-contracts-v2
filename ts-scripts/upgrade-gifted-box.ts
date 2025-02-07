@@ -18,7 +18,7 @@ const networks = [
   "base_sepolia",
   "sepolia",
   "arbitrum_sepolia",
-  "plume_testnet",
+  // "plume_testnet",
   // "abstract_testnet",
   // Add other networks as needed
 ] as const;
