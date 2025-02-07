@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -11,10 +11,10 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "./erc6551/interfaces/IERC6551Account.sol";
-import "./erc6551/evm/lib/ERC6551AccountLib.sol";
+import "erc6551/interfaces/IERC6551Account.sol";
+import "erc6551/lib/ERC6551AccountLib.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IGiftedAccountGuardian.sol";
 import "./interfaces/IGiftedAccount.sol";
 import "./interfaces/IGiftedBox.sol";

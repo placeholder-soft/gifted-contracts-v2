@@ -39,7 +39,7 @@ contract DeploySepolia is Script {
     console.log("Deploying to chain ID:", currentChainId);
 
     deploy_contracts();
-    // deploy_artwork();
+    deploy_artwork();
   }
 
   function deploy_test() internal {
@@ -76,6 +76,7 @@ contract DeploySepolia is Script {
 
     require(address(guardian) != address(0), "Guardian deployment failed");
     guardian.setGiftedAccountImplementation(address(giftedAccountImpl));
+    // guardian.setUnifiedStore(address(unifiedStore));
 
     // Deploy proxy with validation
     GiftedAccountProxy accountProxy = new GiftedAccountProxy(address(guardian));
