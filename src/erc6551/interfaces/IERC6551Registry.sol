@@ -13,6 +13,7 @@ interface IERC6551Registry {
   error InitializationFailed();
 
   function createAccount(
+    address implementation,
     bytes32 bytecodeHash,
     bytes32 salt,
     bytes calldata initData
@@ -20,7 +21,6 @@ interface IERC6551Registry {
 
   function account(
     bytes32 bytecodeHash,
-    bytes32 salt,
-    bytes calldata initData
+    bytes32 salt
   ) external view returns (address);
 }

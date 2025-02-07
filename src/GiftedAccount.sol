@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import "./zksync/SignatureCheckerLib.sol";
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -249,7 +249,7 @@ contract GiftedAccount is
 
   // region ERC1271
   function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
-    bool isValid = SignatureChecker.isValidSignatureNow(owner(), hash, signature);
+    bool isValid = SignatureCheckerLib.isValidSignatureNow(owner(), hash, signature);
 
     if (isValid) {
       return IERC1271.isValidSignature.selector;

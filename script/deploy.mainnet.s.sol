@@ -9,7 +9,7 @@ import "../src/mocks/MockERC1155.sol";
 import "../src/GiftedAccount.sol";
 import "../src/GiftedAccountGuardian.sol";
 import "../src/GiftedAccountProxy.sol";
-import "../src/erc6551/ERC6551Registry.sol";
+import {ERC6551Registry} from "../src/erc6551/ERC6551Registry.sol";
 import "../src/GasSponsorBook.sol";
 import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";

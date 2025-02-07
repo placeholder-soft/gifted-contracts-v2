@@ -188,8 +188,7 @@ contract GiftedBox is
     require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
     return registry.account(
       accountBytecodeHash,
-      calculateSalt(tokenId),
-      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+      calculateSalt(tokenId)
     );
   }
 
@@ -213,8 +212,7 @@ contract GiftedBox is
     require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
     address tokenAccount = registry.account(
       accountBytecodeHash,
-      calculateSalt(tokenId),
-      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+      calculateSalt(tokenId)
     );
     uint256 ticket = generateTicketID(tokenAccount);
     return gasSponsorBook.sponsorTickets(ticket);
@@ -231,6 +229,7 @@ contract GiftedBox is
     require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
     if (tokenAccount.code.length == 0) {
       registry.createAccount(
+        address(accountImpl),
         accountBytecodeHash,
         calculateSalt(tokenId),
         abi.encodeWithSignature("initialize(address)", address(unifiedStore))
@@ -305,8 +304,7 @@ contract GiftedBox is
     bytes32 salt = calculateSalt(tokenId);
     address tokenAccount = registry.account(
       bytecodeHash,
-      salt,
-      abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+      salt
     );
     createAccountIfNeeded(tokenId, tokenAccount);
     handleSponsorshipAndTransfer(tokenAccount, tokenId, msg.value - mintingFee);
