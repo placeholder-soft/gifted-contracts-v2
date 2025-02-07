@@ -35,21 +35,21 @@ contract ERC6551RegistryTest is Test {
         emit log_named_address("Account address", account);
     }
 
-    function test_DifferentSaltsCreateDifferentAddresses() public {
+    function test_DifferentSaltsCreateDifferentAddresses() public view {
         bytes32 salt1 = bytes32(uint256(1));
         bytes32 salt2 = bytes32(uint256(2));
 
-        address account1 = registry.account(bytecodeHash, salt1);
-        address account2 = registry.account(bytecodeHash, salt2);
+        address account1 = registry.account(salt1);
+        address account2 = registry.account(salt2);
 
         assertNotEq(account1, account2, "Different salts should create different addresses");
     }
 
-    function test_SameParametersCreateSameAddress() public {
+    function test_SameParametersCreateSameAddress() public view {
         bytes32 salt = bytes32(uint256(1));
 
-        address account1 = registry.account(bytecodeHash, salt);
-        address account2 = registry.account(bytecodeHash, salt);
+        address account1 = registry.account(salt);
+        address account2 = registry.account(salt);
 
         assertEq(account1, account2, "Same parameters should create same address");
     }

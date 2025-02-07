@@ -17,7 +17,7 @@ contract ERC6551Registry is IERC6551Registry {
         bytes32 salt,
         bytes calldata initData
     ) external returns (address accountAddress) {
-        address existingAccount = account(bytecodeHash, salt);
+        address existingAccount = account(salt);
 
         if (existingAccount.code.length == 0) {
             // Deploy proxy pointing to the implementation
@@ -26,6 +26,8 @@ contract ERC6551Registry is IERC6551Registry {
                 msg.sender, // Admin is the caller
                 salt
             );
+
+            require(accountAddress == existingAccount, "!account-address-mismatch");
 
             // Initialize if needed
             if (initData.length > 0) {
@@ -40,9 +42,8 @@ contract ERC6551Registry is IERC6551Registry {
     }
 
     function account(
-        bytes32 bytecodeHash,
         bytes32 salt
     ) public view returns (address) {
-        return factory.predictDeterministicAddress(bytecodeHash, salt);
+        return factory.predictDeterministicAddress(factory.proxyHash(), salt);
     }
 }

@@ -20,7 +20,6 @@ interface IERC6551Registry {
   ) external returns (address);
 
   function account(
-    bytes32 bytecodeHash,
     bytes32 salt
   ) external view returns (address);
 }

@@ -176,20 +176,14 @@ contract GiftedBox is
 
   // region View Functions
   function calculateSalt(uint256 tokenId) public view returns (bytes32) {
-    return keccak256(abi.encode(
-      block.chainid,
-      address(this),
-      accountBytecodeHash,
-      tokenId
-    ));
+    // First 20 bytes must be zeros to pass factory validation
+    return bytes32(
+      uint256(keccak256(abi.encode(block.chainid, address(this), accountBytecodeHash, tokenId))) & ((1 << 96) - 1)
+    ); // Only keep last 12 bytes, first 20 bytes will be zeros
   }
 
   function tokenAccountAddress(uint256 tokenId) public view returns (address) {
-    require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
-    return registry.account(
-      accountBytecodeHash,
-      calculateSalt(tokenId)
-    );
+    return registry.account(calculateSalt(tokenId));
   }
 
   function generateTicketID(address account) public pure returns (uint256) {
@@ -209,11 +203,7 @@ contract GiftedBox is
     if (address(gasSponsorBook) == address(0)) {
       return 0;
     }
-    require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
-    address tokenAccount = registry.account(
-      accountBytecodeHash,
-      calculateSalt(tokenId)
-    );
+    address tokenAccount = registry.account(calculateSalt(tokenId));
     uint256 ticket = generateTicketID(tokenAccount);
     return gasSponsorBook.sponsorTickets(ticket);
   }
@@ -227,12 +217,16 @@ contract GiftedBox is
   // region Internal Functions
   function createAccountIfNeeded(uint256 tokenId, address tokenAccount) internal {
     require(accountBytecodeHash != bytes32(0), "!bytecode-hash-not-set");
+    require(address(registry) != address(0), "!registry-not-set");
+    require(address(accountImpl) != address(0), "!account-impl-not-set");
     if (tokenAccount.code.length == 0) {
       registry.createAccount(
         address(accountImpl),
         accountBytecodeHash,
         calculateSalt(tokenId),
-        abi.encodeWithSignature("initialize(address)", address(unifiedStore))
+        abi.encodeWithSignature(
+          "initialize(address,uint256,address,uint256)", address(unifiedStore), block.chainid, address(this), tokenId
+        )
       );
     }
   }
@@ -300,12 +294,8 @@ contract GiftedBox is
 
     giftingRecords[tokenId] = GiftingRecord({ operator: operator, sender: sender, recipient: recipient });
 
-    bytes32 bytecodeHash = bytes32(uint256(uint160(address(accountImpl))));
     bytes32 salt = calculateSalt(tokenId);
-    address tokenAccount = registry.account(
-      bytecodeHash,
-      salt
-    );
+    address tokenAccount = registry.account(salt);
     createAccountIfNeeded(tokenId, tokenAccount);
     handleSponsorshipAndTransfer(tokenAccount, tokenId, msg.value - mintingFee);
 
