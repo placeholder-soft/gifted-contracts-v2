@@ -38,6 +38,8 @@ plume_testnet = "${PLUME_TESTNET_RPC_URL}"
 
 abstract_testnet = "${ABSTRACT_TESTNET_URL}"
 
+monad_testnet = "${MONAD_TESTNET_RPC_URL}"
+
 [etherscan]
 arbitrum = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api.arbiscan.io/api" }
 arbitrum_sepolia = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api-sepolia.arbiscan.io/api" }
@@ -56,3 +58,6 @@ zora = { key = "verifyContract", url = "https://api.routescan.io/v2/network/main
 plume_testnet = { key = "verifyContract", url = "https://testnet-explorer.plumenetwork.xyz/api" }
 
 abstract_testnet = { key = "verifyContract", url = "https://api-explorer-verify.testnet.abs.xyz/contract_verification" }
+
+monadTestnet = { key = "DUMMY_VALUE", url = "https://testnet.monadexplorer.com/", chain = 10143 }
+
