@@ -3,7 +3,10 @@ src = "src"
 out = "out"
 libs = ["lib"]
 solc = "0.8.28"
-fs_permissions = [{ access = "read", path = "./"}, { access = "readwrite", path = "./config"}]
+fs_permissions = [
+    { access = "read", path = "./" },
+    { access = "readwrite", path = "./config" },
+]
 evm_version = "prague"
 
 # optimizer = true
@@ -59,5 +62,4 @@ plume_testnet = { key = "verifyContract", url = "https://testnet-explorer.plumen
 
 abstract_testnet = { key = "verifyContract", url = "https://api-explorer-verify.testnet.abs.xyz/contract_verification" }
 
-monadTestnet = { key = "DUMMY_VALUE", url = "https://testnet.monadexplorer.com/", chain = 10143 }
-
+monad_testnet = { key = "DUMMY_VALUE", url = "https://testnet.monadexplorer.com", chain = 10143 }

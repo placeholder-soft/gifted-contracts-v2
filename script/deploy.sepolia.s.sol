@@ -15,6 +15,8 @@ import "../src/UnifiedStore.sol";
 import "../src/Vault.sol";
 import "../src/NFTVault.sol";
 
+import "../src/mocks/MockERC20.sol";
+
 contract DeploySepolia is Script {
   MockERC721 internal mockERC721;
   MockERC1155 internal mockERC1155;
@@ -33,13 +35,26 @@ contract DeploySepolia is Script {
 
   uint256 internal currentChainId;
 
+  MockERC20 public mockUSDT;
+  MockERC20 public mockUSDC;
+  MockERC20 public mockWBTC;
+
+  address[4] public USERS = [
+    0x4F88F1014Dd6Ca0507780380111c098BeE6b87e6,
+    0xC31f6b8133d618aD2ff1AC5fAA3Fc4B20557B901,
+    0x66E675533020c3CDeE2F33E372320B7e2692211e,
+    0x8c4Eb6988A199DAbcae0Ce31052b3f3aC591787e
+  ];
+
+
   function run() public {
     // Get current chain ID
     currentChainId = block.chainid;
     console.log("Deploying to chain ID:", currentChainId);
 
-    deploy_contracts();
+    // deploy_contracts();
     // deploy_artwork();
+    deploy_erc20();
   }
 
   function deploy_test() internal {
@@ -56,6 +71,40 @@ contract DeploySepolia is Script {
     mockERC1155 = new MockERC1155();
     mockERC1155.setURI("https://staging.gifted.art/api/nfts/");
     vm.stopBroadcast();
+  }
+
+  function deploy_erc20() internal {
+    vm.startBroadcast();
+
+    // Deploy MockUSDT
+    mockUSDT = new MockERC20(deployer, "Tether USD", "USDT");
+    mintToAll(mockUSDT, 10000 ether); // USDT typically has 6 decimals
+
+    // Deploy MockUSDC
+    mockUSDC = new MockERC20(deployer, "USD Coin", "USDC");
+    mintToAll(mockUSDC, 10000 ether); // USDC typically has 6 decimals
+
+    // Deploy MockWBTC
+    mockWBTC = new MockERC20(deployer, "Wrapped BTC", "WBTC");
+    mintToAll(mockWBTC, 10000 ether); // WBTC typically has 8 decimals
+
+    vm.stopBroadcast();
+
+    // Log the deployed contract addresses
+    console.log("MockUSDT deployed at:", address(mockUSDT));
+    console.log("MockUSDC deployed at:", address(mockUSDC));
+    console.log("MockWBTC deployed at:", address(mockWBTC));
+    console.log("UnifiedStore updated with new token addresses");
+  }
+
+  function mintToAll(MockERC20 token, uint256 amount) internal {
+    // Mint to deployer
+    token.mint(deployer, amount);
+
+    // Mint to specified users
+    for (uint256 i = 0; i < USERS.length; i++) {
+      token.mint(USERS[i], amount);
+    }
   }
 
   function deploy_contracts() internal {
