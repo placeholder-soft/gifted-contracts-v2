@@ -7,10 +7,11 @@ fs_permissions = [
     { access = "read", path = "./" },
     { access = "readwrite", path = "./config" },
 ]
-evm_version = "prague"
+evm_version = "cancun"
+# evm_version = "prague"
 
-# optimizer = true
-# optimizer_runs = 200
+optimizer = true
+optimizer_runs = 200
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 # fallback_oz = true

@@ -36,7 +36,7 @@ contract UpgradeGiftedBox is Script {
     // guardian.setExecutor(manager, true);
 
 
-    GiftedBox(address(proxy)).setBaseURI("https://rest-api.gifted.art/api/v1/gifts/metadata/base/");
+    GiftedBox(address(proxy)).setBaseURI("https://token.gifted.art/api/v1/gifts/metadata/arbitrum/");
 
     console.log("GiftedBox baseURI set to:", GiftedBox(address(proxy)).baseURI());
 
