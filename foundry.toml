@@ -44,6 +44,8 @@ abstract_testnet = "${ABSTRACT_TESTNET_URL}"
 
 monad_testnet = "${MONAD_TESTNET_RPC_URL}"
 
+cultura_testnet = "${CULTURA_TESTNET_RPC_URL}"
+
 [etherscan]
 arbitrum = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api.arbiscan.io/api" }
 arbitrum_sepolia = { key = "${ARBITRUM_ETHERSCAN_KEY}", url = "https://api-sepolia.arbiscan.io/api" }
@@ -64,3 +66,5 @@ plume_testnet = { key = "verifyContract", url = "https://testnet-explorer.plumen
 abstract_testnet = { key = "verifyContract", url = "https://api-explorer-verify.testnet.abs.xyz/contract_verification" }
 
 monad_testnet = { key = "DUMMY_VALUE", url = "https://testnet.monadexplorer.com", chain = 10143 }
+
+cultura_testnet = { key = "verifyContract", url = "https://explorer-cultura-testnet-7v5ruhfl8s.t.conduit.xyz/api", chain = 61892 }

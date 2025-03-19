@@ -53,8 +53,8 @@ contract DeploySepolia is Script {
     console.log("Deploying to chain ID:", currentChainId);
 
     // deploy_contracts();
-    // deploy_artwork();
-    deploy_erc20();
+    deploy_artwork();
+    // deploy_erc20();
   }
 
   function deploy_test() internal {
@@ -115,6 +115,7 @@ contract DeploySepolia is Script {
     console.log("Deploying contracts with deployer:", deployer);
 
     unifiedStore = new UnifiedStore();
+    console.log("UnifiedStore deployed at:", address(unifiedStore));
     // Deploy guardian and log
     guardian = new GiftedAccountGuardian();
     console.log("GiftedAccountGuardian deployed at:", address(guardian));
